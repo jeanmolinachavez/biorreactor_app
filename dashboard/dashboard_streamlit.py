@@ -55,10 +55,10 @@ variables = {
 # Colores personalizados por variable
 colores = {
     "temperatura": "red",
-    "ph": "blue",
+    "ph": "purple",
     "oxigeno": "green",
-    "turbidez": "orange",
-    "conductividad": "purple"
+    "turbidez": "blue",
+    "conductividad": "orange"
 }
 
 # Filtrar por columnas existentes en el DataFrame
