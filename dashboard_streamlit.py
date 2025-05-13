@@ -1,17 +1,10 @@
 import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
-from pathlib import Path
-import sys
 from pymongo import MongoClient
 import base64
 from PIL import Image
 from io import BytesIO
-
-# Agrega la ruta raíz del proyecto al sistema
-ROOT_DIR = Path(__file__).resolve().parents[1] # sube 1 nivel de dashboard
-sys.path.append(str(ROOT_DIR))
-
 from capturar_imagenes import capturar_y_guardar
 from config import MONGO_URI
 from database import obtener_datos
