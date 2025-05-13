@@ -36,45 +36,73 @@ else:
         st.warning("No hay registros válidos con tiempo")
         st.stop()
 
-    # Botones para activar/desactivar cada columnas para que queden horizontales
-    col1, col2, col3, col4, col5 = st.columns(5)
-
-    with col1:
-        show_temp = st.checkbox("Temperatura", value=True)
-    with col2:
-        show_ph = st.checkbox("pH", value=True)
-    with col3:
-        show_oxy = st.checkbox("Oxígeno Disuelto", value=True)
-    with col4:
-        show_turb = st.checkbox("Turbidez", value=True)
-    with col5:
-        show_cond = st.checkbox("Conductividad", value=True)
-
     # Mostrar tabla
     st.subheader("Tabla de Datos Recientes")
     st.dataframe(df[::-1], use_container_width=True)
 
-    # Gráficos
-    st.subheader("Visualización de Sensores")
+# Gráficos
+st.subheader("Visualización de Sensores")
 
-    # Se crea la figura de plotly
-    fig = go.Figure()
+# Lista de variables para graficar individualmente
+variables = {
+    "temperatura": "Temperatura (°C)",
+    "ph": "pH",
+    "oxigeno": "Oxígeno Disuelto (%)",
+    "turbidez": "Turbidez (%)",
+    "conductividad": "Conductividad (µS/cm)"
+}
 
-    # Se agregar las trazas para el gráfico de dispersión
-    if show_temp:
-        fig.add_trace(go.Scatter(x=df["tiempo"], y=df['temperatura'], mode='lines+markers', name='Temperatura'))
-    if show_ph:
-        fig.add_trace(go.Scatter(x=df["tiempo"], y=df['ph'], mode='lines+markers', name='pH'))        
-    if show_oxy:
-        fig.add_trace(go.Scatter(x=df["tiempo"], y=df['oxigeno'], mode='lines+markers', name='Oxígeno Disuelto'))   
-    if show_turb:
-        fig.add_trace(go.Scatter(x=df["tiempo"], y=df['turbidez'], mode='lines+markers', name='Turbidez'))   
-    if show_cond:
-        fig.add_trace(go.Scatter(x=df["tiempo"], y=df['conductividad'], mode='lines+markers', name='Conductividad'))
+# Colores personalizados por variable
+colores = {
+    "temperatura": "red",
+    "ph": "blue",
+    "oxigeno": "green",
+    "turbidez": "orange",
+    "conductividad": "purple"
+}
 
-    fig.update_layout(title='Datos de Sensores (Tiempo)', xaxis_title='Tiempo', yaxis_title='Valor', xaxis=dict(showgrid=True), yaxis=dict(showgrid=True))
+# Filtrar por columnas existentes en el DataFrame
+variables_disponibles = {var: label for var, label in variables.items() if var in df.columns}
 
-    st.plotly_chart(fig, use_container_width=True)   
+# Inicializar estado si no existe aún
+if "checkbox_states" not in st.session_state:
+    st.session_state.checkbox_states = {var: True for var in variables_disponibles}
+
+# Botones para mostrar u ocultar todos
+col1, col2 = st.columns(2)
+if col1.button("✅ Mostrar todas"):
+    for var in st.session_state.checkbox_states:
+        st.session_state.checkbox_states[var] = True
+if col2.button("❌ Ocultar todas"):
+    for var in st.session_state.checkbox_states:
+        st.session_state.checkbox_states[var] = False
+
+# Mostrar un checkbox por variable con estado guardado
+for var, label in variables_disponibles.items():
+    checked = st.checkbox(
+        f"Mostrar {label}",
+        value=st.session_state.checkbox_states.get(var, True),
+        key=f"chk_{var}"
+    )
+    st.session_state.checkbox_states[var] = checked
+
+    if checked:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=df["tiempo"],
+            y=df[var],
+            mode="lines+markers",
+            name=label,
+            line=dict(color=colores.get(var, "black"))
+        ))
+        fig.update_layout(
+            title=label,
+            xaxis_title="Tiempo",
+            yaxis_title=label,
+            height=350,
+            margin=dict(l=40, r=40, t=40, b=40)
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
 # Botón para captura manual de imagen
 st.subheader("Captura Manual desde la Webcam")
