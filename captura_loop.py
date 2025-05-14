@@ -1,7 +1,7 @@
 import time
 from capturar_imagenes import capturar_y_guardar
 
-INTERVALO_MINUTOS = 15
+INTERVALO_MINUTOS = 60
 
 if __name__ == "__main__":
     try:
