@@ -10,7 +10,7 @@ db = client["biorreactor_app"]
 collection = db["imagenes_webcam"]
 
 def capturar_y_guardar():
-    cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
     ret, frame = cap.read()
     if not ret:
         print("Error al capturar imagen")
