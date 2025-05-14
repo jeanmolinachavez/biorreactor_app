@@ -28,8 +28,15 @@ def obtener_datos():
     cursor = collection.find().sort("tiempo", -1).limit(100)
     datos = []
     for doc in cursor:
+        # Formatear el campo tiempo a string ISO 8601 plano para ser leido por grafana
+        tiempo = doc.get("tiempo")
+        if isinstance(tiempo, datetime):
+            tiempo_str = tiempo.isoformat() + "Z"
+        else:
+            tiempo_str = str(tiempo)  # fallback por si acaso
+
         datos.append({
-            'tiempo': doc.get("tiempo"),
+            'tiempo': tiempo_str,
             'temperatura': doc.get('temperatura'),
             'ph': doc.get('ph'),
             'oxigeno': doc.get('oxigeno'),
