@@ -11,6 +11,7 @@ cryptography==44.0.1
 dnspython==2.4.2
 flask==3.1.0
 flask-pymongo==3.0.1
+gunicorn
 gitpython==3.1.43
 idna==3.7
 itsdangerous==2.2.0
