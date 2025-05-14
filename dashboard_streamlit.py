@@ -8,6 +8,7 @@ from io import BytesIO
 from capturar_imagenes import capturar_y_guardar
 from config import MONGO_URI
 from database import obtener_datos
+import pytz
 
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
 st.title("Dashboard de Monitoreo - Biorreactor Inteligente")
@@ -119,11 +120,20 @@ try:
 
     cols = st.columns(len(documentos))
 
+    chile_tz = pytz.timezone('America/Santiago')
+
     for idx, doc in enumerate(documentos):
-        if 'imagen' in doc:
+        if 'imagen' in doc and 'tiempo' in doc:
             imagen_bytes = base64.b64decode(doc['imagen'])
             imagen = Image.open(BytesIO(imagen_bytes))
-            cols[idx].image(imagen, caption=f"Captura {idx+1}", use_container_width=True)
+
+            # Convertir el timestamp a horario de Chile
+            tiempo_utc = doc['tiempo'].replace(tzinfo=pytz.utc)
+            tiempo_chile = tiempo_utc.astimezone(chile_tz)
+            tiempo_str = tiempo_chile.strftime('%Y-%m-%d %H:%M:%S')
+
+            # Mostrar imagen con la hora local de Chile
+            cols[idx].image(imagen, caption=f"Capturada el {tiempo_str}", use_container_width=True)
 
 except Exception as e:
     st.error(f"Error al cargar imágenes: {e}")
