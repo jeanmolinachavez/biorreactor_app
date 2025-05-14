@@ -3,12 +3,6 @@ import base64
 from datetime import datetime
 from pymongo import MongoClient
 from config import MONGO_URI
-from pathlib import Path
-import sys
-
-# Definir ruta raíz del proyecto para posibles importaciones futuras
-ROOT_DIR = Path(__file__).resolve().parent
-sys.path.append(str(ROOT_DIR))
 
 # Conexión con MongoDB
 client = MongoClient(MONGO_URI)
