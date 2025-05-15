@@ -25,7 +25,7 @@ def recibir_datos():
 @main.route('/api/datos', methods=['GET'])
 def obtener_datos():
     collection = current_app.mongo.db.datos
-    cursor = collection.find().sort("tiempo", -1).limit(100)
+    cursor = collection.find().sort("tiempo", -1).limit(200)
     datos = []
     for doc in cursor:
         # Formatear el campo tiempo a string ISO 8601 plano para ser leido por grafana
@@ -61,7 +61,7 @@ def registrar_comida():
 @main.route('/api/registro_comida', methods=['GET'])
 def obtener_registros_comida():
     collection = current_app.mongo.db.registro_comida
-    cursor = collection.find().sort("tiempo", -1).limit(100)
+    cursor = collection.find().sort("tiempo", -1).limit(200)
     registros = []
     for doc in cursor:
         tiempo = doc.get("tiempo")

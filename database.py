@@ -3,7 +3,7 @@ from config import MONGO_URI
 from datetime import datetime
 import pytz
 
-def obtener_datos(limit=100):
+def obtener_datos(limit=200):
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
     collection = db["datos"]
@@ -35,7 +35,7 @@ def obtener_datos(limit=100):
     client.close()
     return list(reversed(datos))
 
-def obtener_registro_comida(limit=100):
+def obtener_registro_comida(limit=200):
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
     collection = db["registro_comida"]
