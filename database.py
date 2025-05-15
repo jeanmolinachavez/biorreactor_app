@@ -34,3 +34,27 @@ def obtener_datos(limit=100):
 
     client.close()
     return list(reversed(datos))
+
+def obtener_registro_comida(limit=100):
+    client = MongoClient(MONGO_URI)
+    db = client["biorreactor_app"]
+    collection = db["registro_comida"]
+
+    chile_tz = pytz.timezone('America/Santiago')
+
+    cursor = collection.find().sort("tiempo", -1).limit(limit)
+    registros = []
+    for doc in cursor:
+        tiempo_utc = doc.get("tiempo")
+        if tiempo_utc:
+            tiempo_utc = tiempo_utc.replace(tzinfo=pytz.utc)
+            tiempo_chile = tiempo_utc.astimezone(chile_tz)
+        else:
+            tiempo_chile = datetime.now(chile_tz)
+
+        registros.append({
+            'tiempo': tiempo_chile.strftime('%Y-%m-%d %H:%M:%S')
+        })
+
+    client.close()
+    return list(reversed(registros))

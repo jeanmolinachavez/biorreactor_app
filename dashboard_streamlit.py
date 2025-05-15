@@ -7,7 +7,7 @@ from PIL import Image
 from io import BytesIO
 from capturar_imagenes import capturar_y_guardar
 from config import MONGO_URI
-from database import obtener_datos
+from database import obtener_datos, obtener_registro_comida
 import pytz
 
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
@@ -30,9 +30,35 @@ else:
         st.warning("No hay registros válidos con tiempo")
         st.stop()
 
-    # Mostrar tabla
+    # Mostrar tabla de sensores
     st.subheader("Tabla de Datos Recientes")
     st.dataframe(df[::-1], use_container_width=True)
+
+# Mostrar tabla de registro de comidas
+st.subheader("Tabla de comidas recientes")
+registros = obtener_registro_comida(limit=100)
+
+
+if registros:
+    # Convertir a DataFrame por conveniencia
+    df_comida = pd.DataFrame(registros)
+
+    # Asegurarse de que el campo 'tiempo' es datetime
+    df_comida["tiempo"] = pd.to_datetime(df_comida["tiempo"])
+
+    # Dividir en dos columnas: mensaje y tabla
+    col1, col2 = st.columns([1, 2])
+
+    with col1:
+        ultima_fecha = df_comida["tiempo"].max()
+        ultima_fecha_str = ultima_fecha.strftime("%Y-%m-%d %H:%M:%S")
+        st.info(f"🍽️ Se dio comida por última vez el:\n**{ultima_fecha_str}**")
+
+    with col2:
+        st.table(df_comida[::-1])  # Mostrar del más reciente al más antiguo
+
+else:
+    st.info("No hay registros de alimentación aún.")
 
 # Gráficos
 st.subheader("Visualización de Sensores")
