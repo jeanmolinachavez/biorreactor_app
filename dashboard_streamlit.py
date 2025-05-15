@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 import plotly.graph_objects as go
 import pandas as pd
 from pymongo import MongoClient
@@ -10,7 +11,12 @@ from config import MONGO_URI
 from database import obtener_datos, obtener_registro_comida
 import pytz
 
+# Configuración de la página
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
+
+# Auto-refresh cada 10 segundos
+st_autorefresh(interval=10000, key="dashboardrefresh")
+
 st.title("Dashboard de Monitoreo - Biorreactor Inteligente")
 
 data = obtener_datos(limit=200)
