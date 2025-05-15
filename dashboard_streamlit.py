@@ -44,7 +44,6 @@ else:
 st.subheader("Tabla de comidas recientes")
 registros = obtener_registro_comida(limit=100)
 
-
 if registros:
     # Convertir a DataFrame por conveniencia
     df_comida = pd.DataFrame(registros)
@@ -66,7 +65,7 @@ if registros:
 else:
     st.info("No hay registros de alimentación aún.")
 
-# Gráficos
+# Gráficos de Sensores
 st.subheader("Visualización de Sensores")
 
 # Lista de variables para graficar individualmente
