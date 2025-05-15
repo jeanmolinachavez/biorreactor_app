@@ -14,8 +14,8 @@ import pytz
 # Configuración de la página
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
 
-# Auto-refresh cada 10 segundos
-st_autorefresh(interval=10000, key="dashboardrefresh")
+# Auto-refresh cada 30 segundos
+st_autorefresh(interval=30000, key="dashboardrefresh")
 
 st.title("Dashboard de Monitoreo - Biorreactor Inteligente")
 
