@@ -13,7 +13,7 @@ import pytz
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
 st.title("Dashboard de Monitoreo - Biorreactor Inteligente")
 
-data = obtener_datos(limit=100)
+data = obtener_datos(limit=200)
 
 if not data:
     st.warning("No hay datos disponibles en la base de datos.")
