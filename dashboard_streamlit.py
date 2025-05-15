@@ -125,7 +125,7 @@ for var, label in variables_disponibles.items():
         st.plotly_chart(fig, use_container_width=True)
 
 # Botón para captura manual de imagen
-st.subheader("Captura Manual desde la Webcam")
+st.subheader("Captura Manual desde la Webcam (Solo en Local)")
 
 if st.button("Capturar Imagen"):
     try:
