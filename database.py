@@ -3,7 +3,7 @@ from config import MONGO_URI
 from datetime import datetime
 import pytz
 
-def obtener_datos(limit=200):
+def obtener_datos(limit=400):
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
     collection = db["datos"]
