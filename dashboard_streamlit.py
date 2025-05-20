@@ -10,45 +10,48 @@ from capturar_imagenes import capturar_y_guardar
 from config import MONGO_URI
 from database import obtener_datos, obtener_registro_comida
 import pytz
+from datetime import datetime
 
-# Configuración de la página
+# --- UTILIDADES ---
+def a_hora_chile(dt_utc):
+    chile_tz = pytz.timezone('America/Santiago')
+    return dt_utc.replace(tzinfo=pytz.utc).astimezone(chile_tz)
+
+# --- CONFIGURACIÓN GENERAL ---
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
-
-# Auto-refresh cada 30 segundos
 st_autorefresh(interval=30000, key="dashboardrefresh")
 
-st.title("Dashboard de Monitoreo - Biorreactor Inteligente")
+st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
 
+# --- DATOS DE SENSORES --- 
 data = obtener_datos(limit=200)
 
 if not data:
-    st.warning("No hay datos disponibles en la base de datos.")
-else:
-    df = pd.DataFrame(data)
+    st.warning("⚠️ No hay datos disponibles en la base de datos.")
+    st.stop()
 
-    # Filtra solo los registros que tienen timestamp válido
+# Procesamiento de datos
+with st.spinner("Procesando datos..."):
+    df = pd.DataFrame(data)
     df = df[df['tiempo'].notna()]
 
-    if not df.empty:
-        df['tiempo'] = pd.to_datetime(df['tiempo'])
-        df = df.sort_values(by='tiempo')
-    else:
-        st.warning("No hay registros válidos con tiempo")
+    if df.empty:
+        st.warning("⚠️ No hay registros válidos con tiempo.")
         st.stop()
 
-    # Mostrar tabla de sensores
-    st.subheader("Tabla de Datos Recientes")
-    st.dataframe(df[::-1], use_container_width=True)
+    df['tiempo'] = pd.to_datetime(df['tiempo'])
+    df = df.sort_values(by='tiempo')
 
-# Mostrar tabla de registro de comidas
-st.subheader("Tabla de comidas recientes")
+# --- TABLA DE DATOS DE SENSORES ---
+st.subheader("📋 Tabla de Datos Recientes")
+st.dataframe(df[::-1], use_container_width=True)
+
+# --- REGISTRO DE COMIDAS ---
+st.subheader("🍽️ Registro de Alimentación")
 registros = obtener_registro_comida(limit=100)
 
 if registros:
-    # Convertir a DataFrame por conveniencia
     df_comida = pd.DataFrame(registros)
-
-    # Asegurarse de que el campo 'tiempo' es datetime
     df_comida["tiempo"] = pd.to_datetime(df_comida["tiempo"])
 
     # Dividir en dos columnas: mensaje y tabla
@@ -56,23 +59,37 @@ if registros:
 
     with col1:
         ultima_fecha = df_comida["tiempo"].max()
-        ultima_fecha_str = ultima_fecha.strftime("%Y-%m-%d %H:%M:%S")
-        st.info(f"🍽️ Se dio comida por última vez el:\n**{ultima_fecha_str}**")
+        ultima_fecha_chile = a_hora_chile(ultima_fecha)
+        ultima_fecha_str = ultima_fecha_chile.strftime("%Y-%m-%d %H:%M:%S")
+
+        st.info(f"🍽️ Última alimentación:\n**{ultima_fecha_str}**")
+
+        # Calcular días sin alimentar
+        ahora_chile = datetime.now(pytz.timezone('America/Santiago'))
+        dias_sin_alimentar = (ahora_chile.date() - ultima_fecha_chile.date()).days
+        
+        # Mostrar mensaje según días transcurridos
+        if dias_sin_alimentar == 0:
+            st.success("✅ Hoy se ha alimentado a la microalga.")
+        elif dias_sin_alimentar == 1:
+            st.info("ℹ️ Ha pasado 1 día desde la última alimentación.")
+        else:
+            st.warning(f"⚠️ Han pasado {dias_sin_alimentar} días sin alimentar a la microalga.")
 
     with col2:
-        st.table(df_comida[::-1])  # Mostrar del más reciente al más antiguo
-
+        with st.expander("📄 Ver historial de alimentación"):
+            st.table(df_comida[::-1])
 else:
-    st.info("No hay registros de alimentación aún.")
+    st.info("ℹ️ No hay registros de alimentación aún.")
 
-# Gráficos de Sensores
-st.subheader("Visualización de Sensores")
+# --- GRÁFICOS DE SENSORES ---
+st.subheader("📈 Visualización de Sensores")
 
 # Lista de variables para graficar individualmente
 variables = {
     "temperatura": "Temperatura (°C)",
     "ph": "pH",
-    "oxigeno": "Oxígeno Disuelto (%)",
+    "oxigeno": "Oxígeno Disuelto (Concentración de O2 en el aire)",
     "turbidez": "Turbidez (%)",
     "conductividad": "Conductividad (µS/cm)"
 }
@@ -104,67 +121,40 @@ if col2.button("❌ Ocultar todas"):
 
 # Mostrar un checkbox por variable con estado guardado
 for var, label in variables_disponibles.items():
-    checked = st.checkbox(
-        f"Mostrar {label}",
-        value=st.session_state.checkbox_states.get(var, True),
-        key=f"chk_{var}"
-    )
+    checked = st.checkbox(f"Mostrar {label}", value=st.session_state.checkbox_states[var], key=f"chk_{var}")
     st.session_state.checkbox_states[var] = checked
 
     if checked:
         fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df["tiempo"],
-            y=df[var],
-            mode="lines+markers",
-            name=label,
-            line=dict(color=colores.get(var, "black"))
-        ))
-        fig.update_layout(
-            title=label,
-            xaxis_title="Tiempo",
-            yaxis_title=label,
-            height=350,
-            margin=dict(l=40, r=40, t=40, b=40)
-        )
+        fig.add_trace(go.Scatter(x=df["tiempo"], y=df[var], mode="lines+markers", name=label, line=dict(color=colores.get(var, "black"))))
+        fig.update_layout(title=label, xaxis_title="Tiempo", yaxis_title=label, height=350, margin=dict(l=40, r=40, t=40, b=40))
         st.plotly_chart(fig, use_container_width=True)
 
-# Botón para captura manual de imagen
-st.subheader("Captura Manual desde la Webcam (Solo en Local)")
+# --- CAPTURA DE IMAGENES ---
+st.subheader("📷 Captura Manual desde la Webcam (Solo en Local)")
 
-if st.button("Capturar Imagen"):
+if st.button("📸 Capturar Imagen"):
     try:
         capturar_y_guardar()
-        st.success("Imagen capturada y guardada exitosamente.")
+        st.success("✅ Imagen capturada exitosamente.")
     except Exception as e:
-        st.error(f"Ocurrió un error al capturar: {e}")
+        st.error(f"❌ Error al capturar: {e}")
 
-# Mostrar imágenes de la webcam
-st.subheader("Últimas Imágenes Capturadas desde Webcam")
+# Mostrar últimas imágenes de la webcam
+st.subheader("🖼️ Últimas Imágenes Capturadas")
 
 try:
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
     collection = db["imagenes_webcam"]
-
     documentos = list(collection.find().sort("tiempo", -1).limit(3))
 
     cols = st.columns(len(documentos))
-
-    chile_tz = pytz.timezone('America/Santiago')
-
     for idx, doc in enumerate(documentos):
         if 'imagen' in doc and 'tiempo' in doc:
             imagen_bytes = base64.b64decode(doc['imagen'])
             imagen = Image.open(BytesIO(imagen_bytes))
-
-            # Convertir el timestamp a horario de Chile
-            tiempo_utc = doc['tiempo'].replace(tzinfo=pytz.utc)
-            tiempo_chile = tiempo_utc.astimezone(chile_tz)
-            tiempo_str = tiempo_chile.strftime('%Y-%m-%d %H:%M:%S')
-
-            # Mostrar imagen con la hora local de Chile
+            tiempo_str = a_hora_chile(doc['tiempo']).strftime('%Y-%m-%d %H:%M:%S')
             cols[idx].image(imagen, caption=f"Capturada el {tiempo_str}", use_container_width=True)
-
 except Exception as e:
-    st.error(f"Error al cargar imágenes: {e}")
+    st.error(f"❌ Error al cargar imágenes: {e}")
