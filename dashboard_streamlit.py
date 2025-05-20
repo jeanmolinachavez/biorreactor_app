@@ -24,7 +24,7 @@ st_autorefresh(interval=30000, key="dashboardrefresh")
 st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
 
 # --- DATOS DE SENSORES --- 
-data = obtener_datos(limit=400)
+data = obtener_datos(limit=2000)
 
 if not data:
     st.warning("⚠️ No hay datos disponibles en la base de datos.")
