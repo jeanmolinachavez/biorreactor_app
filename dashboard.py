@@ -48,7 +48,7 @@ st.dataframe(df[::-1], use_container_width=True)
 
 # --- REGISTRO DE COMIDAS ---
 st.subheader("🍽️ Registro de Alimentación")
-registros = obtener_registro_comida(limit=100)
+registros = obtener_registro_comida(limit=2000)
 
 if registros:
     df_comida = pd.DataFrame(registros)

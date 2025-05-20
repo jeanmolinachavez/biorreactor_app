@@ -3,26 +3,25 @@ from config import MONGO_URI
 from datetime import datetime
 import pytz
 
+# Zona horaria de Chile definida una vez
+chile_tz = pytz.timezone('America/Santiago')
+
+# Conversión centralizada a horario chileno
+def convertir_a_chile(utc_dt):
+    if utc_dt:
+        utc_dt = utc_dt.replace(tzinfo=pytz.utc)
+        return utc_dt.astimezone(chile_tz)
+    else:
+        return datetime.now(chile_tz)
+
 def obtener_datos(limit=2000):
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
     collection = db["datos"]
-
-    chile_tz = pytz.timezone('America/Santiago')
-
     cursor = collection.find().sort("tiempo", -1).limit(limit)
     datos = []
     for doc in cursor:
-
-        # Convertir tiempo a zona horaria de Chile
-        tiempo_utc = doc.get("tiempo")
-        if tiempo_utc:
-            # Asegúrate de que tenga zona UTC, y luego conviértelo
-            tiempo_utc = tiempo_utc.replace(tzinfo=pytz.utc)
-            tiempo_chile = tiempo_utc.astimezone(chile_tz)
-        else:
-            tiempo_chile = datetime.now(chile_tz)
-
+        tiempo_chile = convertir_a_chile(doc.get("tiempo"))
         datos.append({
             'tiempo': tiempo_chile.strftime('%Y-%m-%d %H:%M:%S'),
             'temperatura': doc.get('temperatura'),
@@ -35,23 +34,14 @@ def obtener_datos(limit=2000):
     client.close()
     return list(reversed(datos))
 
-def obtener_registro_comida(limit=200):
+def obtener_registro_comida(limit=2000):
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
     collection = db["registro_comida"]
-
-    chile_tz = pytz.timezone('America/Santiago')
-
     cursor = collection.find().sort("tiempo", -1).limit(limit)
     registros = []
     for doc in cursor:
-        tiempo_utc = doc.get("tiempo")
-        if tiempo_utc:
-            tiempo_utc = tiempo_utc.replace(tzinfo=pytz.utc)
-            tiempo_chile = tiempo_utc.astimezone(chile_tz)
-        else:
-            tiempo_chile = datetime.now(chile_tz)
-
+        tiempo_chile = convertir_a_chile(doc.get("tiempo"))
         registros.append({
             'tiempo': tiempo_chile.strftime('%Y-%m-%d %H:%M:%S')
         })
