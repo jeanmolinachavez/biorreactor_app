@@ -19,7 +19,7 @@ def a_hora_chile(dt_utc):
 
 # --- CONFIGURACIÓN GENERAL ---
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
-st_autorefresh(interval=30000, key="dashboardrefresh")
+st_autorefresh(interval=900000, key="dashboardrefresh")
 
 st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
 
