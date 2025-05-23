@@ -3,4 +3,5 @@ from app import create_app
 app = create_app()
 
 if __name__ == '__main__':
-    app.run(debug=False)
+    # Escucha en todas las IPs (0.0.0.0) y en el puerto 5000
+    app.run(host='0.0.0.0', port=5000, debug=False)
