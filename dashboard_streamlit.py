@@ -70,11 +70,11 @@ if registros:
         
         # Mostrar mensaje según días transcurridos
         if dias_sin_alimentar == 0:
-            st.success("✅ Hoy se ha alimentado a la microalga.")
+            st.success("✅ Hoy se ha alimentado a las microalgas.")
         elif dias_sin_alimentar == 1:
             st.info("ℹ️ Ha pasado 1 día desde la última alimentación.")
         else:
-            st.warning(f"⚠️ Han pasado {dias_sin_alimentar} días sin alimentar a la microalga.")
+            st.warning(f"⚠️ Han pasado {dias_sin_alimentar} días sin alimentar a las microalgas.")
 
     with col2:
         with st.expander("📄 Ver historial de alimentación"):
