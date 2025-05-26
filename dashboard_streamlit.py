@@ -132,7 +132,6 @@ for var, label in variables_disponibles.items():
     checked = st.checkbox(f"Mostrar {label}", value=st.session_state.checkbox_states[var], key=f"chk_{var}")
     st.session_state.checkbox_states[var] = checked
 
-
     if checked:
         fig = go.Figure()
         fig.add_trace(go.Scatter(
