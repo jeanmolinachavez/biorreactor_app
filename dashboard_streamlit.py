@@ -59,14 +59,13 @@ if registros:
 
     with col1:
         ultima_fecha = df_comida["tiempo"].max()
-        ultima_fecha_chile = a_hora_chile(ultima_fecha)
-        ultima_fecha_str = ultima_fecha_chile.strftime("%Y-%m-%d %H:%M:%S")
+        ultima_fecha_str = ultima_fecha.strftime("%Y-%m-%d %H:%M:%S")
 
         st.info(f"🍽️ Última alimentación:\n**{ultima_fecha_str}**")
 
         # Calcular días sin alimentar
         ahora_chile = datetime.now(pytz.timezone('America/Santiago'))
-        dias_sin_alimentar = (ahora_chile.date() - ultima_fecha_chile.date()).days
+        dias_sin_alimentar = (ahora_chile.date() - ultima_fecha.date()).days
         
         # Mostrar mensaje según días transcurridos
         if dias_sin_alimentar == 0:
