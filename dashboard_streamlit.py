@@ -70,7 +70,7 @@ if registros:
         
         # Mostrar mensaje según días transcurridos
         if dias_sin_alimentar == 0:
-            st.success("✅ Hoy se ha alimentado a las microalgas.")
+            st.success("✅ Hoy se han alimentado a las microalgas.")
         elif dias_sin_alimentar == 1:
             st.info("ℹ️ Ha pasado 1 día desde la última alimentación.")
         else:
@@ -89,9 +89,9 @@ st.subheader("📈 Visualización de Sensores")
 variables = {
     "temperatura": "Temperatura (°C)",
     "ph": "pH",
-    "oxigeno": "Oxígeno Disuelto (Concentración de O2 en el aire)",
+    "oxigeno": "Oxígeno (Concentración de O2 en el aire)",
     "turbidez": "Turbidez (%)",
-    "conductividad": "Conductividad (µS/cm)"
+    "conductividad": "Conductividad (Sólidos totales disueltos en ppm)"
 }
 
 # Colores personalizados por variable
