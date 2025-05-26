@@ -86,11 +86,20 @@ st.subheader("📈 Visualización de Sensores")
 
 # Lista de variables para graficar individualmente
 variables = {
-    "temperatura": "Temperatura (°C)",
+    "temperatura": "Temperatura",
     "ph": "pH",
-    "oxigeno": "Oxígeno (Concentración de O2 en el aire)",
-    "turbidez": "Turbidez (%)",
-    "conductividad": "Conductividad (Sólidos totales disueltos en ppm)"
+    "oxigeno": "Oxígeno - Concentración de O2 en el aire",
+    "turbidez": "Turbidez",
+    "conductividad": "Conductividad - Sólidos totales disueltos"
+}
+
+# Lista de unidades de cada variable
+unidades = {
+    "temperatura": "°C",
+    "ph": "pH",
+    "oxigeno": "%",
+    "turbidez": "%",
+    "conductividad": "ppm"
 }
 
 # Colores personalizados por variable
@@ -123,10 +132,42 @@ for var, label in variables_disponibles.items():
     checked = st.checkbox(f"Mostrar {label}", value=st.session_state.checkbox_states[var], key=f"chk_{var}")
     st.session_state.checkbox_states[var] = checked
 
+
     if checked:
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=df["tiempo"], y=df[var], mode="lines+markers", name=label, line=dict(color=colores.get(var, "black"))))
-        fig.update_layout(title=label, xaxis_title="Tiempo", yaxis_title=label, height=350, margin=dict(l=40, r=40, t=40, b=40))
+        fig.add_trace(go.Scatter(
+            x=df["tiempo"], y=df[var],
+            mode="lines+markers",
+            name=label,
+            line=dict(color=colores.get(var, "black"), width=2),
+            marker=dict(size=6, opacity=0.7)
+        ))
+
+        fig.update_layout(
+            title=label.split("(")[0].strip(),
+            xaxis_title="Tiempo",
+            yaxis_title=unidades.get(var, ""),
+            height=350,
+            margin=dict(l=40, r=40, t=40, b=40),
+            legend=dict(
+                yanchor="top",
+                y=0.99,
+                xanchor="left",
+                x=0.01,
+                bgcolor='rgba(255,255,255,0.7)',
+                bordercolor="Black",
+                borderwidth=1
+            )
+        )
+
+        fig.update_xaxes(
+            tickformat="%d-%m %H:%M",
+            tickangle=45,
+            nticks=10,
+            showgrid=True
+        )
+        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
+
         st.plotly_chart(fig, use_container_width=True)
 
 # --- CAPTURA DE IMAGENES ---
