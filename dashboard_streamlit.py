@@ -42,6 +42,29 @@ with st.spinner("Procesando datos..."):
     df['tiempo'] = pd.to_datetime(df['tiempo'])
     df = df.sort_values(by='tiempo')
 
+# --- FILTRO DE FECHAS ---
+st.subheader("📅 Filtro de Fechas")
+
+fecha_min = df["tiempo"].min().date()
+fecha_max = df["tiempo"].max().date()
+
+fecha_inicio, fecha_fin = st.date_input(
+    "Selecciona un rango de fechas:",
+    value=(fecha_min, fecha_max),
+    min_value=fecha_min,
+    max_value=fecha_max
+)
+
+# Filtrar el DataFrame por el rango seleccionado
+df = df[(df["tiempo"].dt.date >= fecha_inicio) & (df["tiempo"].dt.date <= fecha_fin)]
+
+# --- MÉTRICAS ---
+st.markdown("### 📊 Últimos Valores de Sensores")
+col1, col2, col3 = st.columns(3)
+col1.metric("🌡️ Temperatura", f"{df['temperatura'].iloc[-1]:.2f} °C")
+col2.metric("🌊 pH", f"{df['ph'].iloc[-1]:.2f}")
+col3.metric("🧪 Turbidez", f"{df['turbidez'].iloc[-1]:.2f} %")
+
 # --- TABLA DE DATOS DE SENSORES ---
 st.subheader("📋 Tabla de Datos Recientes")
 st.dataframe(df[::-1], use_container_width=True)
@@ -170,14 +193,14 @@ for var, label in variables_disponibles.items():
         st.plotly_chart(fig, use_container_width=True)
 
 # --- CAPTURA DE IMAGENES ---
-st.subheader("📷 Captura Manual desde la Webcam (Solo en Local)")
-
-if st.button("📸 Capturar Imagen"):
-    try:
-        capturar_y_guardar()
-        st.success("✅ Imagen capturada exitosamente.")
-    except Exception as e:
-        st.error(f"❌ Error al capturar: {e}")
+#st.subheader("📷 Captura Manual desde la Webcam (Solo en Local)")
+#
+#if st.button("📸 Capturar Imagen"):
+#    try:
+#        capturar_y_guardar()
+#        st.success("✅ Imagen capturada exitosamente.")
+#    except Exception as e:
+#        st.error(f"❌ Error al capturar: {e}")
 
 # Mostrar últimas imágenes de la webcam
 st.subheader("🖼️ Últimas Imágenes Capturadas")
