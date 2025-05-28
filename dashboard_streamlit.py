@@ -60,10 +60,11 @@ df = df[(df["tiempo"].dt.date >= fecha_inicio) & (df["tiempo"].dt.date <= fecha_
 
 # --- MÉTRICAS ---
 st.markdown("### 📊 Últimos Valores de Sensores")
-col1, col2, col3 = st.columns(3)
+col1, col2, col3, col4 = st.columns(4)
 col1.metric("🌡️ Temperatura", f"{df['temperatura'].iloc[-1]:.2f} °C")
 col2.metric("🌊 pH", f"{df['ph'].iloc[-1]:.2f}")
 col3.metric("🧪 Turbidez", f"{df['turbidez'].iloc[-1]:.2f} %")
+col4.metric("🫁 Oxígeno", f"{df['oxigeno'].iloc[-1]:.2f} %")
 
 # --- TABLA DE DATOS DE SENSORES ---
 st.subheader("📋 Tabla de Datos Recientes")
