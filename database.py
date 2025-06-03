@@ -14,16 +14,17 @@ def convertir_a_chile(utc_dt):
     else:
         return datetime.now(chile_tz)
 
-def obtener_datos(limit=2000):
+def obtener_datos(dominio='dominio_ucn', limit=2000):
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
-    collection = db["dominio_ucn"]
+    collection = db[dominio]  # Aquí usa el dominio dinámico
     cursor = collection.find().sort("tiempo", -1).limit(limit)
     datos = []
     for doc in cursor:
         tiempo_chile = convertir_a_chile(doc.get("tiempo"))
         datos.append({
             'tiempo': tiempo_chile.strftime('%Y-%m-%d %H:%M:%S'),
+            'id_dispositivo': doc.get('id_dispositivo'),  # si quieres mostrarlo
             'temperatura': doc.get('temperatura'),
             'ph': doc.get('ph'),
             'oxigeno': doc.get('oxigeno'),

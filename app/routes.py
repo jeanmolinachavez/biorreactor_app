@@ -26,25 +26,39 @@ def recibir_datos():
 
 @main.route('/api/datos', methods=['GET'])
 def obtener_datos():
-    collection = current_app.mongo.db.datos
-    cursor = collection.find().sort("tiempo", -1).limit(200)
+    dominio = request.args.get('dominio')
+    if not dominio:
+        return jsonify({'error': 'Falta parámetro dominio'}), 400
+
+    limit = request.args.get('limit', default=200, type=int)
+    if limit <= 0:
+        return jsonify({'error': 'El parámetro limit debe ser mayor que 0'}), 400
+
+    colecciones = current_app.mongo.db.list_collection_names()
+    if dominio not in colecciones:
+        return jsonify({'error': f'No existe la colección {dominio}'}), 404
+
+    collection = current_app.mongo.db[dominio]
+    cursor = collection.find().sort("tiempo", -1).limit(limit)
+
     datos = []
     for doc in cursor:
-        # Formatear el campo tiempo a string ISO 8601 plano para ser leido por grafana
         tiempo = doc.get("tiempo")
         if isinstance(tiempo, datetime):
             tiempo_str = tiempo.isoformat() + "Z"
         else:
-            tiempo_str = str(tiempo)  # fallback por si acaso
+            tiempo_str = str(tiempo)
 
         datos.append({
             'tiempo': tiempo_str,
+            'id_dispositivo': doc.get('id_dispositivo'),
             'temperatura': doc.get('temperatura'),
             'ph': doc.get('ph'),
             'oxigeno': doc.get('oxigeno'),
             'turbidez': doc.get('turbidez'),
             'conductividad': doc.get('conductividad')
         })
+
     return jsonify(list(reversed(datos)))
 
 @main.route('/api/registro_comida', methods=['POST'])
