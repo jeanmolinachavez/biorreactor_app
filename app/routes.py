@@ -10,17 +10,19 @@ def index():
 @main.route('/api/sensores', methods=['POST'])
 def recibir_datos():
     data = request.get_json()
-    if not data:
-        return jsonify({'error': 'No se recibió JSON'}), 400
+    if not data or 'dominio' not in data:
+        return jsonify({'error': 'Falta campo dominio'}), 400
 
     # Añadir timestamp automaticamente
     data['tiempo'] = datetime.utcnow()
+    data['id_dispositivo'] = data.get('id_dispositivo', 'desconocido')
 
     # Insertar en MongoDB
+    dominio = data.pop('dominio')  # Usamos este nombre como colección    
     collection = current_app.mongo.db.datos
     collection.insert_one(data)
 
-    return jsonify({'message': 'Datos guardados correctamente'}), 201
+    return jsonify({'message': f'Datos guardados en dominio {dominio}'}), 201
 
 @main.route('/api/datos', methods=['GET'])
 def obtener_datos():
@@ -75,9 +77,3 @@ def obtener_registros_comida():
             'evento': doc.get('evento')
         })
     return jsonify(list(reversed(registros)))
-
-@main.route('/api/clear', methods=['POST'])
-def clear_data():
-    collection = current_app.mongo.db.datos
-    result = collection.delete_many({})
-    return jsonify({'message': f'{result.deleted_count} documentos eliminados'}), 200

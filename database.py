@@ -17,7 +17,7 @@ def convertir_a_chile(utc_dt):
 def obtener_datos(limit=2000):
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
-    collection = db["datos"]
+    collection = db["dominio_ucn"]
     cursor = collection.find().sort("tiempo", -1).limit(limit)
     datos = []
     for doc in cursor:
