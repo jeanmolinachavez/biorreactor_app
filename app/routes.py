@@ -19,7 +19,7 @@ def recibir_datos():
 
     # Insertar en MongoDB
     dominio = data.pop('dominio')  # Usamos este nombre como colección    
-    collection = current_app.mongo.db.datos
+    collection = current_app.mongo.db[dominio]
     collection.insert_one(data)
 
     return jsonify({'message': f'Datos guardados en dominio {dominio}'}), 201
