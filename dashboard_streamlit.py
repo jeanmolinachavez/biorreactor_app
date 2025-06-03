@@ -33,8 +33,15 @@ st.subheader("🌐 Filtro de Dominios")
 # Filtrar solo colecciones que comiencen con "dominio_"
 dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
 
+# Intentar seleccionar por defecto "dominio_ucn" si está en la lista
+indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" in dominios_disponibles else 0
+
 # Selector de dominio (colección)
-dominio_seleccionado = st.selectbox("Selecciona un dominio (colección)", dominios_disponibles)
+dominio_seleccionado = st.selectbox(
+    "Selecciona un dominio (colección)",
+    dominios_disponibles,
+    index=indice_por_defecto
+)
 
 # Cargar datos del dominio seleccionado
 data = obtener_datos(dominio=dominio_seleccionado, limit=2000)
