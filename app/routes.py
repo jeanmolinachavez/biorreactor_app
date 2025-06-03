@@ -27,6 +27,7 @@ def recibir_datos():
 @main.route('/api/datos', methods=['GET'])
 def obtener_datos():
     dominio = request.args.get('dominio')
+    id_dispositivo = request.args.get('id_dispositivo')
     if not dominio:
         return jsonify({'error': 'Falta parámetro dominio'}), 400
 
@@ -39,7 +40,14 @@ def obtener_datos():
         return jsonify({'error': f'No existe la colección {dominio}'}), 404
 
     collection = current_app.mongo.db[dominio]
-    cursor = collection.find().sort("tiempo", -1).limit(limit)
+
+    # Armamos el filtro
+    filtro = {}
+    if id_dispositivo:
+        filtro['id_dispositivo'] = id_dispositivo
+
+    # Consulta filtrada
+    cursor = collection.find(filtro).sort("tiempo", -1).limit(limit)
 
     datos = []
     for doc in cursor:
