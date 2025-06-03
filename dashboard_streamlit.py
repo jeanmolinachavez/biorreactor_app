@@ -24,7 +24,20 @@ st_autorefresh(interval=900000, key="dashboardrefresh")
 st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
 
 # --- DATOS DE SENSORES --- 
-data = obtener_datos(limit=2000)
+client = MongoClient(MONGO_URI)
+db = client["biorreactor_app"]
+
+# --- FILTRO DE DOMINIOS ---
+st.subheader("🌐 Filtro de Dominios")
+
+# Filtrar solo colecciones que comiencen con "dominio_"
+dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
+
+# Selector de dominio (colección)
+dominio_seleccionado = st.selectbox("Selecciona un dominio (colección)", dominios_disponibles)
+
+# Cargar datos del dominio seleccionado
+data = obtener_datos(dominio=dominio_seleccionado, limit=2000)
 
 if not data:
     st.warning("⚠️ No hay datos disponibles en la base de datos.")
@@ -105,93 +118,152 @@ if registros:
 else:
     st.info("ℹ️ No hay registros de alimentación aún.")
 
-# --- GRÁFICOS DE SENSORES ---
-st.subheader("📈 Visualización de Sensores")
+# --- GRÁFICOS DE SENSORES EN PESTAÑAS ---
+st.subheader("📈 Visualización de Sensores - esp32_01")
 
-# Lista de variables para graficar individualmente
-variables = {
-    "temperatura": "Temperatura",
-    "ph": "pH",
-    "oxigeno": "Oxígeno - Concentración de O2 en el aire",
-    "turbidez": "Turbidez",
-    "conductividad": "Conductividad - Sólidos totales disueltos"
-}
+# --- Seleccionar dominio si está disponible ---
+if "dominio" in df.columns:
+    dominios_unicos = sorted(df["dominio"].dropna().unique())
+    dominio_seleccionado_dato = st.selectbox("🌐 Selecciona el dominio del dato:", dominios_unicos)
+    df_dominio_ucn = df[df["dominio"] == dominio_seleccionado_dato]
+else:
+    df_dominio_ucn = df
 
-# Lista de unidades de cada variable
-unidades = {
-    "temperatura": "°C",
-    "ph": "pH",
-    "oxigeno": "%",
-    "turbidez": "%",
-    "conductividad": "ppm"
-}
+# --- Filtrar por esp32_01 ---
+df_01 = df_dominio_ucn[df_dominio_ucn["id_dispositivo"] == "esp32_01"]
 
-# Colores personalizados por variable
-colores = {
-    "temperatura": "red",
-    "ph": "purple",
-    "oxigeno": "green",
-    "turbidez": "blue",
-    "conductividad": "orange"
-}
+if df_01.empty:
+    st.info("ℹ️ No hay datos para el dispositivo esp32_01.")
+else:
+    # Variables disponibles: (nombre legible, unidad, color)
+    variables = {
+        "temperatura": ("Temperatura", "°C", "red"),
+        "ph": ("pH", "pH", "purple"),
+        "oxigeno": ("Oxígeno", "%", "green"),
+        "turbidez": ("Turbidez", "%", "blue"),
+        "conductividad": ("Conductividad", "ppm", "orange"),
+    }
 
-# Filtrar por columnas existentes en el DataFrame
-variables_disponibles = {var: label for var, label in variables.items() if var in df.columns}
+    tab_labels = list([nombre for (nombre, _, _) in variables.values()])
+    tab_labels.append("Comparar dispositivos")
+    tab_labels.append("Comparación múltiple")
+    tabs = st.tabs(tab_labels)
 
-# Inicializar estado si no existe aún
-if "checkbox_states" not in st.session_state:
-    st.session_state.checkbox_states = {var: True for var in variables_disponibles}
+    # --- PESTAÑAS INDIVIDUALES POR VARIABLE ---
+    for i, (var, (nombre, unidad, color)) in enumerate(variables.items()):
+        with tabs[i]:
+            if var in df_01.columns:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=df_01["tiempo"], y=df_01[var],
+                    mode="lines+markers",
+                    name=nombre,
+                    line=dict(color=color, width=2),
+                    marker=dict(size=6, opacity=0.7)
+                ))
 
-# Botones para mostrar u ocultar todos
-col1, col2 = st.columns(2)
-if col1.button("✅ Mostrar todas"):
-    for var in st.session_state.checkbox_states:
-        st.session_state.checkbox_states[var] = True
-if col2.button("❌ Ocultar todas"):
-    for var in st.session_state.checkbox_states:
-        st.session_state.checkbox_states[var] = False
+                fig.update_layout(
+                    title=f"{nombre} - esp32_01",
+                    xaxis_title="Tiempo",
+                    yaxis_title=unidad,
+                    height=400,
+                    margin=dict(l=40, r=40, t=40, b=40),
+                )
 
-# Mostrar un checkbox por variable con estado guardado
-for var, label in variables_disponibles.items():
-    checked = st.checkbox(f"Mostrar {label}", value=st.session_state.checkbox_states[var], key=f"chk_{var}")
-    st.session_state.checkbox_states[var] = checked
+                fig.update_xaxes(
+                    tickformat="%d-%m %H:%M",
+                    tickangle=45,
+                    nticks=10,
+                    showgrid=True
+                )
+                fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
 
-    if checked:
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(
-            x=df["tiempo"], y=df[var],
-            mode="lines+markers",
-            name=label,
-            line=dict(color=colores.get(var, "black"), width=2),
-            marker=dict(size=6, opacity=0.7)
-        ))
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.warning(f"⚠️ No hay datos para la variable '{var}' en esp32_01.")
 
-        fig.update_layout(
-            title=label.split("(")[0].strip(),
-            xaxis_title="Tiempo",
-            yaxis_title=unidades.get(var, ""),
-            height=350,
-            margin=dict(l=40, r=40, t=40, b=40),
-            legend=dict(
-                yanchor="top",
-                y=0.99,
-                xanchor="left",
-                x=0.01,
-                bgcolor='rgba(255,255,255,0.7)',
-                bordercolor="Black",
-                borderwidth=1
+    # --- COMPARACIÓN DE DOS DISPOSITIVOS ---
+    with tabs[-2]:
+        st.markdown(f"### 📊 Comparar dispositivos dentro del dominio `{dominio_seleccionado}`")
+
+        dispositivos_disponibles = sorted(df_dominio_ucn["id_dispositivo"].unique())
+
+        col1, col2 = st.columns(2)
+        dispositivo_1 = col1.selectbox("📟 Dispositivo 1", dispositivos_disponibles, index=0)
+        dispositivo_2 = col2.selectbox("📟 Dispositivo 2", dispositivos_disponibles, index=1 if len(dispositivos_disponibles) > 1 else 0)
+
+        variable_seleccionada = st.selectbox("🔧 Variable a comparar", list(variables.keys()), format_func=lambda x: variables[x][0])
+
+        df1 = df_dominio_ucn[df_dominio_ucn["id_dispositivo"] == dispositivo_1]
+        df2 = df_dominio_ucn[df_dominio_ucn["id_dispositivo"] == dispositivo_2]
+
+        if df1.empty or df2.empty:
+            st.warning("⚠️ Uno de los dispositivos no tiene datos.")
+        else:
+            nombre_var, unidad, _ = variables[variable_seleccionada]
+
+            fig = go.Figure()
+
+            fig.add_trace(go.Scatter(
+                x=df1["tiempo"], y=df1[variable_seleccionada],
+                mode="lines+markers",
+                name=dispositivo_1,
+                line=dict(color="blue", width=2),
+                marker=dict(size=5)
+            ))
+
+            fig.add_trace(go.Scatter(
+                x=df2["tiempo"], y=df2[variable_seleccionada],
+                mode="lines+markers",
+                name=dispositivo_2,
+                line=dict(color="orange", width=2),
+                marker=dict(size=5)
+            ))
+
+            fig.update_layout(
+                title=f"Comparación de {nombre_var} entre {dispositivo_1} y {dispositivo_2}",
+                xaxis_title="Tiempo",
+                yaxis_title=unidad,
+                height=450,
+                margin=dict(l=40, r=40, t=40, b=40)
             )
-        )
 
-        fig.update_xaxes(
-            tickformat="%d-%m %H:%M",
-            tickangle=45,
-            nticks=10,
-            showgrid=True
-        )
-        fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
+            fig.update_xaxes(tickformat="%d-%m %H:%M", tickangle=45, showgrid=True)
+            fig.update_yaxes(showgrid=True, gridcolor='lightgray')
 
-        st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, use_container_width=True)
+
+    # --- COMPARACIÓN MÚLTIPLE DE DISPOSITIVOS ---
+    with tabs[-1]:
+        st.markdown("### 🔍 Comparación múltiple de dispositivos")
+
+        dispositivos = df_dominio_ucn["id_dispositivo"].dropna().unique().tolist()
+        seleccionados = st.multiselect("Selecciona dispositivos:", dispositivos, default=dispositivos[:2])
+        var_multi = st.selectbox("Variable a visualizar:", list(variables.keys()), format_func=lambda x: variables[x][0])
+
+        if seleccionados and var_multi:
+            fig = go.Figure()
+            for disp in seleccionados:
+                df_disp = df_dominio_ucn[df_dominio_ucn["id_dispositivo"] == disp]
+                fig.add_trace(go.Scatter(
+                    x=df_disp["tiempo"],
+                    y=df_disp[var_multi],
+                    mode="lines+markers",
+                    name=disp
+                ))
+
+            fig.update_layout(
+                title=f"Comparación de {variables[var_multi][0]} entre múltiples dispositivos",
+                xaxis_title="Tiempo",
+                yaxis_title=variables[var_multi][1],
+                height=450,
+                margin=dict(l=40, r=40, t=40, b=40),
+            )
+
+            fig.update_xaxes(tickformat="%d-%m %H:%M", tickangle=45, showgrid=True)
+            fig.update_yaxes(showgrid=True, gridcolor='lightgray')
+
+            st.plotly_chart(fig, use_container_width=True)
 
 # --- CAPTURA DE IMAGENES ---
 #st.subheader("📷 Captura Manual desde la Webcam (Solo en Local)")
