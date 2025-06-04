@@ -30,7 +30,8 @@ db = client["biorreactor_app"]
 # --- FILTROS DE DOMINIO Y FECHAS EN UNA FILA ---
 st.subheader("🌐📅 Filtros de Dominio y Fecha")
 
-col_dom, col_fecha = st.columns([1, 2])  # Más espacio para el rango de fechas
+# Dividir en dos columnas: dominio y fecha
+col_dom, col_fecha = st.columns([1, 2])
 
 with col_dom:
     # Filtrar solo colecciones que comiencen con "dominio_"
