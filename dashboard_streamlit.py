@@ -152,7 +152,6 @@ else:
     }
 
     tab_labels = list([nombre for (nombre, _, _) in variables.values()])
-    tab_labels.append("Comparar dispositivos")
     tab_labels.append("Comparación múltiple")
     tabs = st.tabs(tab_labels)
 
@@ -188,57 +187,6 @@ else:
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.warning(f"⚠️ No hay datos para la variable '{var}' en esp32_01.")
-
-    # --- COMPARACIÓN DE DOS DISPOSITIVOS ---
-    with tabs[-2]:
-        st.markdown(f"### 📊 Comparar dispositivos dentro del dominio `{dominio_seleccionado}`")
-
-        dispositivos_disponibles = sorted(df_dominio_ucn["id_dispositivo"].unique())
-
-        col1, col2 = st.columns(2)
-        dispositivo_1 = col1.selectbox("📟 Dispositivo 1", dispositivos_disponibles, index=0)
-        dispositivo_2 = col2.selectbox("📟 Dispositivo 2", dispositivos_disponibles, index=1 if len(dispositivos_disponibles) > 1 else 0)
-
-        variable_seleccionada = st.selectbox("🔧 Variable a comparar", list(variables.keys()), format_func=lambda x: variables[x][0])
-
-        df1 = df_dominio_ucn[df_dominio_ucn["id_dispositivo"] == dispositivo_1]
-        df2 = df_dominio_ucn[df_dominio_ucn["id_dispositivo"] == dispositivo_2]
-
-        if df1.empty or df2.empty:
-            st.warning("⚠️ Uno de los dispositivos no tiene datos.")
-        else:
-            nombre_var, unidad, _ = variables[variable_seleccionada]
-
-            fig = go.Figure()
-
-            fig.add_trace(go.Scatter(
-                x=df1["tiempo"], y=df1[variable_seleccionada],
-                mode="lines+markers",
-                name=dispositivo_1,
-                line=dict(color="blue", width=2),
-                marker=dict(size=5)
-            ))
-
-            fig.add_trace(go.Scatter(
-                x=df2["tiempo"], y=df2[variable_seleccionada],
-                mode="lines+markers",
-                name=dispositivo_2,
-                line=dict(color="orange", width=2),
-                marker=dict(size=5)
-            ))
-
-            fig.update_layout(
-                title=f"Comparación de {nombre_var} entre {dispositivo_1} y {dispositivo_2}",
-                xaxis_title="Tiempo",
-                yaxis_title=unidad,
-                height=450,
-                margin=dict(l=40, r=40, t=40, b=40)
-            )
-
-            fig.update_xaxes(tickformat="%d-%m %H:%M", tickangle=45, showgrid=True)
-            fig.update_yaxes(showgrid=True, gridcolor='lightgray')
-
-            st.plotly_chart(fig, use_container_width=True)
 
     # --- COMPARACIÓN MÚLTIPLE DE DISPOSITIVOS ---
     with tabs[-1]:
