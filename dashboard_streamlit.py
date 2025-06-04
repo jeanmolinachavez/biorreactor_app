@@ -27,31 +27,34 @@ st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
 client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
-# --- FILTRO DE DOMINIOS ---
-st.subheader("🌐 Filtro de Dominios")
+# --- FILTROS DE DOMINIO Y FECHAS EN UNA FILA ---
+st.subheader("🌐📅 Filtros de Dominio y Fecha")
 
-# Filtrar solo colecciones que comiencen con "dominio_"
-dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
+col_dom, col_fecha = st.columns([1, 2])  # Más espacio para el rango de fechas
 
-# Intentar seleccionar por defecto "dominio_ucn" si está en la lista
-indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" in dominios_disponibles else 0
+with col_dom:
+    # Filtrar solo colecciones que comiencen con "dominio_"
+    dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
+    
+    # Intentar seleccionar por defecto "dominio_ucn" si está en la lista
+    indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" in dominios_disponibles else 0
 
-# Selector de dominio (colección)
-dominio_seleccionado = st.selectbox(
-    "Selecciona un dominio (colección)",
-    dominios_disponibles,
-    index=indice_por_defecto
-)
+    # Selector de dominio (colección)
+    dominio_seleccionado = st.selectbox(
+        "Selecciona un dominio:",
+        dominios_disponibles,
+        index=indice_por_defecto
+    )
 
-# Cargar datos del dominio seleccionado
-data = obtener_datos(dominio=dominio_seleccionado, limit=2000)
-
-if not data:
-    st.warning("⚠️ No hay datos disponibles en la base de datos.")
-    st.stop()
-
-# Procesamiento de datos
+# --- CARGAR Y PROCESAR DATOS DE LA COLECCIÓN SELECCIONADA ---
 with st.spinner("Procesando datos..."):
+    # Cargar datos del dominio seleccionado
+    data = obtener_datos(dominio=dominio_seleccionado, limit=2000)
+
+    if not data:
+        st.warning("⚠️ No hay datos disponibles en la base de datos.")
+        st.stop()
+
     df = pd.DataFrame(data)
     df = df[df['tiempo'].notna()]
 
@@ -62,21 +65,24 @@ with st.spinner("Procesando datos..."):
     df['tiempo'] = pd.to_datetime(df['tiempo'])
     df = df.sort_values(by='tiempo')
 
-# --- FILTRO DE FECHAS ---
-st.subheader("📅 Filtro de Fechas")
+    # FILTRO DE FECHAS EN LA MISMA FILA
+    with col_fecha:
+        fecha_min = df["tiempo"].min().date()
+        fecha_max = df["tiempo"].max().date()
 
-fecha_min = df["tiempo"].min().date()
-fecha_max = df["tiempo"].max().date()
+        fecha_inicio, fecha_fin = st.date_input(
+            "Selecciona un rango de fechas:",
+            value=(fecha_min, fecha_max),
+            min_value=fecha_min,
+            max_value=fecha_max
+        )
 
-fecha_inicio, fecha_fin = st.date_input(
-    "Selecciona un rango de fechas:",
-    value=(fecha_min, fecha_max),
-    min_value=fecha_min,
-    max_value=fecha_max
-)
+        # Filtrar el dataframe por el rango seleccionado
+        df = df[(df["tiempo"].dt.date >= fecha_inicio) & (df["tiempo"].dt.date <= fecha_fin)]
 
-# Filtrar el DataFrame por el rango seleccionado
-df = df[(df["tiempo"].dt.date >= fecha_inicio) & (df["tiempo"].dt.date <= fecha_fin)]
+        if df.empty:
+            st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
+            st.stop()
 
 # --- MÉTRICAS ---
 st.markdown("### 📊 Últimos Valores de Sensores")
