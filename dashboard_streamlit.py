@@ -126,7 +126,7 @@ else:
     st.info("ℹ️ No hay registros de alimentación aún.")
 
 # --- GRÁFICOS DE SENSORES EN PESTAÑAS ---
-st.subheader("📈 Visualización de Sensores - esp32_01")
+st.subheader("📈 Visualización de Sensores por Dispositivo")
 
 # --- Seleccionar dominio si está disponible ---
 if "dominio" in df.columns:
@@ -136,11 +136,16 @@ if "dominio" in df.columns:
 else:
     df_dominio_ucn = df
 
-# --- Filtrar por esp32_01 ---
-df_01 = df_dominio_ucn[df_dominio_ucn["id_dispositivo"] == "esp32_01"]
+# --- Selección del ID del dispositivo ---
+st.subheader("📟 Selección del Dispositivo")
+dispositivos_disponibles = sorted(df_dominio_ucn["id_dispositivo"].dropna().unique())
+id_seleccionado = st.selectbox("Selecciona un dispositivo:", dispositivos_disponibles)
 
-if df_01.empty:
-    st.info("ℹ️ No hay datos para el dispositivo esp32_01.")
+# --- Filtrar por el dispositivo seleccionado ---
+df_id = df_dominio_ucn[df_dominio_ucn["id_dispositivo"] == id_seleccionado]
+
+if df_id.empty:
+    st.info(f"ℹ️ No hay datos para el dispositivo {id_seleccionado}.")
 else:
     # Variables disponibles: (nombre legible, unidad, color)
     variables = {
@@ -158,10 +163,10 @@ else:
     # --- PESTAÑAS INDIVIDUALES POR VARIABLE ---
     for i, (var, (nombre, unidad, color)) in enumerate(variables.items()):
         with tabs[i]:
-            if var in df_01.columns:
+            if var in df_id.columns:
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
-                    x=df_01["tiempo"], y=df_01[var],
+                    x=df_id["tiempo"], y=df_id[var],
                     mode="lines+markers",
                     name=nombre,
                     line=dict(color=color, width=2),
@@ -169,7 +174,7 @@ else:
                 ))
 
                 fig.update_layout(
-                    title=f"{nombre} - esp32_01",
+                    title=f"{nombre} - {id_seleccionado}",
                     xaxis_title="Tiempo",
                     yaxis_title=unidad,
                     height=400,
@@ -186,7 +191,7 @@ else:
 
                 st.plotly_chart(fig, use_container_width=True)
             else:
-                st.warning(f"⚠️ No hay datos para la variable '{var}' en esp32_01.")
+                st.warning(f"⚠️ No hay datos para la variable '{var}' en {id_seleccionado}.")
 
     # --- COMPARACIÓN MÚLTIPLE DE DISPOSITIVOS ---
     with tabs[-1]:
