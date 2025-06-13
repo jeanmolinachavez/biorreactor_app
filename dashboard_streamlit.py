@@ -97,8 +97,26 @@ col3.metric("🧪 Turbidez", f"{df['turbidez'].iloc[-1]:.2f} %")
 col4.metric("🫁 Oxígeno", f"{df['oxigeno'].iloc[-1]:.2f} %")
 
 # --- TABLA DE DATOS DE SENSORES ---
-st.subheader("📋 Tabla de Datos Recientes")
-st.dataframe(df[::-1], use_container_width=True)
+st.subheader("📋 Tabla de Datos (Paginado Manual)")
+
+# Parámetros para paginación
+filas_por_pagina = 50
+total_filas = len(df)
+paginas_totales = (total_filas - 1) // filas_por_pagina + 1
+
+# Lista de opciones para el selectbox
+opciones_paginas = [f"Página {i+1}" for i in range(paginas_totales)]
+pagina_seleccionada = st.selectbox("Selecciona una página:", opciones_paginas, index=0)
+indice_pagina = opciones_paginas.index(pagina_seleccionada)
+
+# Cálculo de índices
+inicio = indice_pagina * filas_por_pagina
+fin = inicio + filas_por_pagina
+df_pagina = df[::-1].iloc[inicio:fin]
+
+# Mostrar la tabla paginada
+st.dataframe(df_pagina, use_container_width=True)
+
 
 # --- REGISTRO DE COMIDAS ---
 st.subheader("🍽️ Registro de Alimentación")
