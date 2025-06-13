@@ -26,7 +26,7 @@ st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
 # Botón para redirigir a dashboard en grafana
 st.link_button("🔗 Ir al Dashboard en Grafana", "https://jeanmolina.grafana.net/public-dashboards/dd177b1f03f94db6ac6242f5586c796d", use_container_width=True)
 
-# --- DATOS DE SENSORES --- 
+# --- CONEXIÓN A LA BASE DE DATOS --- 
 client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
