@@ -117,7 +117,6 @@ df_pagina = df[::-1].iloc[inicio:fin]
 # Mostrar la tabla paginada
 st.dataframe(df_pagina, use_container_width=True)
 
-
 # --- REGISTRO DE COMIDAS ---
 st.subheader("🍽️ Registro de Alimentación")
 registros = obtener_registro_comida(limit=2000)
