@@ -27,7 +27,7 @@ st.sidebar.link_button("🔗 Ir al Dashboard en Grafana", "https://jeanmolina.gr
 seccion = st.sidebar.radio("📁 Navegación", [
     "Métricas", 
     "Reporte de Sensores", 
-    "Alimentación", 
+    "Registro de Alimentación", 
     "Gráficos", 
     "Imágenes"
 ])
