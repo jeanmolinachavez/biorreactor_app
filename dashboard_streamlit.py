@@ -154,6 +154,14 @@ id_seleccionado = st.selectbox("Selecciona un dispositivo:", dispositivos_dispon
 # --- Filtrar por el dispositivo seleccionado ---
 df_id = df_dominio_ucn[df_dominio_ucn["id_dispositivo"] == id_seleccionado]
 
+# --- BOTÓN DE DESCARGA PARA DATOS FILTRADOS (Dominio, fechas e id) ---
+st.download_button(
+    label="📥 Descargar datos filtrados",
+    data=df_id.to_csv(index=False).encode('utf-8'),
+    file_name=f"datos_{dominio_seleccionado}_{id_seleccionado}.csv",
+    mime='text/csv'
+)
+
 if df_id.empty:
     st.info(f"ℹ️ No hay datos para el dispositivo {id_seleccionado}.")
 else:
