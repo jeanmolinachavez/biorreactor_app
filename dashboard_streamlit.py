@@ -96,26 +96,37 @@ col2.metric("🌊 pH", f"{df['ph'].iloc[-1]:.2f}")
 col3.metric("🧪 Turbidez", f"{df['turbidez'].iloc[-1]:.2f} %")
 col4.metric("🫁 Oxígeno", f"{df['oxigeno'].iloc[-1]:.2f} %")
 
-# --- TABLA DE DATOS DE SENSORES ---
-st.subheader("📋 Tabla de Datos (Paginado Manual)")
+# --- TABLA DE DATOS DE SENSORES CON FILTRO POR DISPOSITIVO Y PAGINACIÓN ---
+st.subheader("📋 Tabla de Datos con Filtro por Dispositivo y Paginación")
 
-# Parámetros para paginación
+# Filtro por ID de dispositivo
+if "id_dispositivo" in df.columns:
+    dispositivos_disponibles_tabla = sorted(df["id_dispositivo"].dropna().unique())
+    ids_filtrados = st.multiselect("Filtrar por ID de dispositivo:", dispositivos_disponibles_tabla, default=dispositivos_disponibles_tabla)
+    df_filtrado = df[df["id_dispositivo"].isin(ids_filtrados)]
+else:
+    df_filtrado = df
+
+# Paginación usando selectbox
 filas_por_pagina = 50
-total_filas = len(df)
-paginas_totales = (total_filas - 1) // filas_por_pagina + 1
+total_filas = len(df_filtrado)
+paginas_totales = max((total_filas - 1) // filas_por_pagina + 1, 1)
 
-# Lista de opciones para el selectbox
+# Crear opciones para selectbox
 opciones_paginas = [f"Página {i+1}" for i in range(paginas_totales)]
 pagina_seleccionada = st.selectbox("Selecciona una página:", opciones_paginas, index=0)
 indice_pagina = opciones_paginas.index(pagina_seleccionada)
 
-# Cálculo de índices
+# Calcular inicio y fin
 inicio = indice_pagina * filas_por_pagina
 fin = inicio + filas_por_pagina
-df_pagina = df[::-1].iloc[inicio:fin]
 
 # Mostrar la tabla paginada
+df_pagina = df_filtrado[::-1].iloc[inicio:fin]
 st.dataframe(df_pagina, use_container_width=True)
+
+# Info de navegación
+st.caption(f"Mostrando registros {inicio + 1} a {min(fin, total_filas)} de {total_filas}")
 
 # --- REGISTRO DE COMIDAS ---
 st.subheader("🍽️ Registro de Alimentación")
