@@ -88,7 +88,7 @@ elif seccion == "🍽️ Alimentación":
     mostrar_registro_comida(registros)
 
 elif seccion == "📈 Gráficos":
-    mostrar_graficos(df, dominio=df['dominio'].iloc[0] if 'dominio' in df.columns else dominio_seleccionado)
+    mostrar_graficos(df)
 
 elif seccion == "🖼️ Imágenes":
     collection = db["imagenes_webcam"]
