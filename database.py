@@ -14,7 +14,7 @@ def convertir_a_chile(utc_dt):
     else:
         return datetime.now(chile_tz)
 
-def obtener_datos(dominio='dominio_ucn', limit=2000):
+def obtener_datos(dominio='dominio_ucn', limit=5000):
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
     collection = db[dominio]
@@ -35,7 +35,7 @@ def obtener_datos(dominio='dominio_ucn', limit=2000):
     client.close()
     return list(reversed(datos))
 
-def obtener_registro_comida(limit=2000):
+def obtener_registro_comida(limit=5000):
     client = MongoClient(MONGO_URI)
     db = client["biorreactor_app"]
     collection = db["registro_comida"]

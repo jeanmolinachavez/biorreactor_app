@@ -18,7 +18,7 @@ def a_hora_chile(dt_utc):
     return dt_utc.replace(tzinfo=pytz.utc).astimezone(chile_tz)
 
 @st.cache_data(ttl=600)  # Cache por 10 minutos
-def cargar_datos_cacheados(dominio='dominio_ucn', limit=2000):
+def cargar_datos_cacheados(dominio='dominio_ucn', limit=5000):
     return obtener_datos(dominio, limit)
 
 # --- CONFIGURACIÓN GENERAL ---
@@ -51,7 +51,7 @@ with st.expander("🌐📅 Filtros de dominio y fechas", expanded=True):
 
     with col2:
         # Cargar datos para obtener fechas válidas
-        data = cargar_datos_cacheados(dominio_seleccionado, limit=2000)
+        data = cargar_datos_cacheados(dominio_seleccionado, limit=5000)
         if not data:
             st.warning("⚠️ No hay datos disponibles en la base de datos.")
             st.stop()
