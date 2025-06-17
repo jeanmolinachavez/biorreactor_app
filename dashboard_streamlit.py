@@ -17,6 +17,10 @@ def a_hora_chile(dt_utc):
     chile_tz = pytz.timezone('America/Santiago')
     return dt_utc.replace(tzinfo=pytz.utc).astimezone(chile_tz)
 
+@st.cache_data(ttl=600)  # Cache por 10 minutos
+def cargar_datos_cacheados(dominio='dominio_ucn', limit=2000):
+    return obtener_datos(dominio, limit)
+
 # --- CONFIGURACIÓN GENERAL ---
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
 st_autorefresh(interval=900000, key="dashboardrefresh")
@@ -44,8 +48,8 @@ indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" 
 
 dominio_seleccionado = st.sidebar.selectbox("Selecciona un dominio:", dominios_disponibles, index=indice_por_defecto)
 
-with st.spinner("Procesando datos..."):
-    data = obtener_datos(dominio=dominio_seleccionado, limit=2000)
+with st.spinner("Procesando datos desde la base de datos..."):
+    data = cargar_datos_cacheados(dominio_seleccionado, limit=2000)
     if not data:
         st.warning("⚠️ No hay datos disponibles en la base de datos.")
         st.stop()
