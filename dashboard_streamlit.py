@@ -21,31 +21,28 @@ def a_hora_chile(dt_utc):
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
 st_autorefresh(interval=900000, key="dashboardrefresh")
 st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
-st.sidebar.link_button("🔗 Ir al Dashboard en Grafana", "https://jeanmolina.grafana.net/public-dashboards/dd177b1f03f94db6ac6242f5586c796d")
 
 # --- MENÚ LATERAL ---
-seccion = st.sidebar.radio("📁 Navegación", [
-    "Métricas", 
-    "Reporte de Sensores", 
-    "Registro de Alimentación", 
-    "Gráficos", 
-    "Imágenes"
+st.sidebar.markdown("### 📁 **Navegación**")
+seccion = st.sidebar.radio("", [
+    "📊 Métricas", 
+    "📋 Reporte de Sensores", 
+    "🍽️ Alimentación", 
+    "📈 Gráficos", 
+    "🖼️ Imágenes"
 ])
 
 # --- CONEXIÓN A LA BASE DE DATOS --- 
 client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
-# --- SECCIÓN: FILTROS (siempre se usa primero para cargar df) ---
-st.sidebar.subheader("🌐📅 Filtros de Dominio y Fecha")
+# --- SECCIÓN: FILTROS DOMINIO Y FECHA (siempre se usa primero para cargar df) ---
+st.sidebar.markdown("### 🌐📅 Filtros")
+
 dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
 indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" in dominios_disponibles else 0
 
-dominio_seleccionado = st.sidebar.selectbox(
-    "Selecciona un dominio:",
-    dominios_disponibles,
-    index=indice_por_defecto
-)
+dominio_seleccionado = st.sidebar.selectbox("Selecciona un dominio:", dominios_disponibles, index=indice_por_defecto)
 
 with st.spinner("Procesando datos..."):
     data = obtener_datos(dominio=dominio_seleccionado, limit=2000)
@@ -66,8 +63,7 @@ with st.spinner("Procesando datos..."):
     fecha_max = df["tiempo"].max().date()
 
     fecha_inicio, fecha_fin = st.sidebar.date_input(
-        "Selecciona un rango de fechas:",
-        value=(fecha_min, fecha_max),
+        "Selecciona un rango de fechas:", value=(fecha_min, fecha_max),
         min_value=fecha_min,
         max_value=fecha_max
     )
@@ -78,16 +74,22 @@ with st.spinner("Procesando datos..."):
         st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
         st.stop()
 
+# --- BOTÓN PARA REDIRECCIONAR AL DASHBOARD EN GRAFANA ---
+st.sidebar.markdown("---")
+st.sidebar.link_button("🔗 Ir al Dashboard en Grafana", "https://jeanmolina.grafana.net/public-dashboards/dd177b1f03f94db6ac6242f5586c796d")
+
+
 # --- RENDERIZAR LA SECCIÓN SELECCIONADA ---
-if seccion == "Métricas":
+if seccion == "📊 Métricas":
     st.markdown("### 📊 Últimos Valores de Sensores")
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("🌡️ Temperatura", f"{df['temperatura'].iloc[-1]:.2f} °C")
     col2.metric("🌊 pH", f"{df['ph'].iloc[-1]:.2f}")
     col3.metric("🧪 Turbidez", f"{df['turbidez'].iloc[-1]:.2f} %")
     col4.metric("🫁 Oxígeno", f"{df['oxigeno'].iloc[-1]:.2f} %")
+    col5.metric("⚡ Conductividad", f"{df['conductividad'].iloc[-1]:.2f} ppm")
 
-elif seccion == "Reporte de Sensores":
+elif seccion == "📋 Reporte de Sensores":
     st.subheader("📋 Reporte de Sensores")
 
     # Filtro por ID de dispositivo
@@ -136,7 +138,7 @@ elif seccion == "Reporte de Sensores":
     st.caption(f"Mostrando registros {inicio + 1} a {min(fin, total_filas)} de {total_filas}")
 
 
-elif seccion == "Registro de Alimentación":
+elif seccion == "🍽️ Alimentación":
     st.subheader("🍽️ Registro de Alimentación")
     registros = obtener_registro_comida(limit=2000)
 
@@ -171,7 +173,7 @@ elif seccion == "Registro de Alimentación":
     else:
         st.info("ℹ️ No hay registros de alimentación aún.")
 
-elif seccion == "Gráficos":
+elif seccion == "📈 Gráficos":
     st.subheader("📈 Visualización de Sensores por Dispositivo")
     # --- Seleccionar dominio si está disponible ---
     if "dominio" in df.columns:
@@ -202,15 +204,15 @@ elif seccion == "Gráficos":
     else:
         # Variables disponibles: (nombre legible, unidad, color)
         variables = {
-            "temperatura": ("Temperatura", "°C", "red"),
-            "ph": ("pH", "pH", "purple"),
-            "oxigeno": ("Oxígeno", "%", "green"),
-            "turbidez": ("Turbidez", "%", "blue"),
-            "conductividad": ("Conductividad", "ppm", "orange"),
+            "temperatura": ("🌡️ Temperatura", "°C", "red"),
+            "ph": ("🌊 pH", "pH", "purple"),
+            "oxigeno": ("🫁 Oxígeno", "%", "green"),
+            "turbidez": ("🧪 Turbidez", "%", "blue"),
+            "conductividad": ("⚡ Conductividad", "ppm", "orange"),
         }
 
         tab_labels = list([nombre for (nombre, _, _) in variables.values()])
-        tab_labels.append("Comparación múltiple")
+        tab_labels.append("📊 Comparación múltiple")
         tabs = st.tabs(tab_labels)
 
         # --- PESTAÑAS INDIVIDUALES POR VARIABLE ---
@@ -230,16 +232,12 @@ elif seccion == "Gráficos":
                         title=f"{nombre} - {id_seleccionado}",
                         xaxis_title="Tiempo",
                         yaxis_title=unidad,
+                        autosize=True,
                         height=400,
                         margin=dict(l=40, r=40, t=40, b=40),
                     )
 
-                    fig.update_xaxes(
-                        tickformat="%d-%m %H:%M",
-                        tickangle=45,
-                        nticks=10,
-                        showgrid=True
-                    )
+                    fig.update_xaxes(tickformat="%d-%m %H:%M", tickangle=45, nticks=10, showgrid=True)
                     fig.update_yaxes(showgrid=True, gridwidth=1, gridcolor='lightgray')
 
                     st.plotly_chart(fig, use_container_width=True)
@@ -269,6 +267,7 @@ elif seccion == "Gráficos":
                     title=f"Comparación de {variables[var_multi][0]} entre múltiples dispositivos",
                     xaxis_title="Tiempo",
                     yaxis_title=variables[var_multi][1],
+                    autosize=True,
                     height=450,
                     margin=dict(l=40, r=40, t=40, b=40),
                 )
@@ -278,13 +277,11 @@ elif seccion == "Gráficos":
 
                 st.plotly_chart(fig, use_container_width=True)
 
-elif seccion == "Imágenes":
+elif seccion == "🖼️ Imágenes":
     st.subheader("🖼️ Últimas Imágenes Capturadas")
     try:
-        client = MongoClient(MONGO_URI)
-        db = client["biorreactor_app"]
         collection = db["imagenes_webcam"]
-        documentos = list(collection.find().sort("tiempo", -1).limit(3))
+        documentos = list(collection.find().sort("tiempo", -1).limit(5))
 
         cols = st.columns(len(documentos))
         for idx, doc in enumerate(documentos):
