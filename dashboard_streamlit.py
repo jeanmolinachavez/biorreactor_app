@@ -2,7 +2,6 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 from pymongo import MongoClient
-import pytz
 from config import MONGO_URI
 from database import obtener_datos, obtener_registro_comida
 from funciones_dashboard import (
