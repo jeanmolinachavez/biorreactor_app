@@ -40,47 +40,48 @@ seccion = st.sidebar.radio("", [
 client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
-# --- SECCIÓN: FILTROS DOMINIO Y FECHA (siempre se usa primero para cargar df) ---
-st.sidebar.markdown("### 🌐📅 Filtros")
+# --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS EN UN SOLO EXPANDER ---
+with st.expander("🌐📅 Filtros de dominio y fechas", expanded=True):
+    col1, col2 = st.columns(2)
 
-dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
-indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" in dominios_disponibles else 0
+    with col1:
+        dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
+        indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" in dominios_disponibles else 0
+        dominio_seleccionado = st.selectbox("🌐 Selecciona un dominio:", dominios_disponibles, index=indice_por_defecto)
 
-dominio_seleccionado = st.sidebar.selectbox("Selecciona un dominio:", dominios_disponibles, index=indice_por_defecto)
+    with col2:
+        # Cargar datos para obtener fechas válidas
+        data = cargar_datos_cacheados(dominio_seleccionado, limit=2000)
+        if not data:
+            st.warning("⚠️ No hay datos disponibles en la base de datos.")
+            st.stop()
 
-with st.spinner("Procesando datos desde la base de datos..."):
-    data = cargar_datos_cacheados(dominio_seleccionado, limit=2000)
-    if not data:
-        st.warning("⚠️ No hay datos disponibles en la base de datos.")
-        st.stop()
+        df = pd.DataFrame(data)
+        df = df[df['tiempo'].notna()]
+        if df.empty:
+            st.warning("⚠️ No hay registros válidos con tiempo.")
+            st.stop()
 
-    df = pd.DataFrame(data)
-    df = df[df['tiempo'].notna()]
-    if df.empty:
-        st.warning("⚠️ No hay registros válidos con tiempo.")
-        st.stop()
+        df['tiempo'] = pd.to_datetime(df['tiempo'])
+        df = df.sort_values(by='tiempo')
 
-    df['tiempo'] = pd.to_datetime(df['tiempo'])
-    df = df.sort_values(by='tiempo')
+        fecha_min = df["tiempo"].min().date()
+        fecha_max = df["tiempo"].max().date()
 
-    fecha_min = df["tiempo"].min().date()
-    fecha_max = df["tiempo"].max().date()
+        fecha_inicio, fecha_fin = st.date_input(
+            "📅 Rango de fechas:",
+            value=(fecha_min, fecha_max),
+            min_value=fecha_min,
+            max_value=fecha_max
+        )
 
-# --- FILTRO DE FECHA EN EL CUERPO PRINCIPAL ---
-with st.expander("📅 Filtrar rango de fechas", expanded=True):
-    fecha_inicio, fecha_fin = st.date_input(
-        "Selecciona un rango de fechas:",
-        value=(fecha_min, fecha_max),
-        min_value=fecha_min,
-        max_value=fecha_max
-    )
-
-# --- FILTRAR EL DATAFRAME SEGÚN EL RANGO SELECCIONADO ---
+# --- FILTRAR POR RANGO DE FECHAS ---
 df = df[(df["tiempo"].dt.date >= fecha_inicio) & (df["tiempo"].dt.date <= fecha_fin)]
 
 if df.empty:
     st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
     st.stop()
+
 
 # --- BOTÓN PARA REDIRECCIONAR AL DASHBOARD EN GRAFANA ---
 st.sidebar.markdown("---")
