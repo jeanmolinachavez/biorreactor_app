@@ -28,7 +28,7 @@ st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
 
 # --- MENÚ LATERAL ---
 st.sidebar.markdown("### 📁 **Navegación**")
-seccion = st.sidebar.radio("", [
+seccion = st.sidebar.radio("Selecciona una sección:", [
     "📊 Métricas", 
     "📋 Reporte de Sensores", 
     "🍽️ Alimentación", 

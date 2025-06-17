@@ -41,7 +41,7 @@ def obtener_datos():
 
     collection = current_app.mongo.db[dominio]
 
-    # Armamos el filtro
+    # Se crea el filtro
     filtro = {}
     if id_dispositivo:
         filtro['id_dispositivo'] = id_dispositivo
