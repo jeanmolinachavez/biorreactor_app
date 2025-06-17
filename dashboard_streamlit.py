@@ -66,17 +66,21 @@ with st.spinner("Procesando datos desde la base de datos..."):
     fecha_min = df["tiempo"].min().date()
     fecha_max = df["tiempo"].max().date()
 
-    fecha_inicio, fecha_fin = st.sidebar.date_input(
-        "Selecciona un rango de fechas:", value=(fecha_min, fecha_max),
+# --- FILTRO DE FECHA EN EL CUERPO PRINCIPAL ---
+with st.expander("📅 Filtrar rango de fechas", expanded=True):
+    fecha_inicio, fecha_fin = st.date_input(
+        "Selecciona un rango de fechas:",
+        value=(fecha_min, fecha_max),
         min_value=fecha_min,
         max_value=fecha_max
     )
 
-    df = df[(df["tiempo"].dt.date >= fecha_inicio) & (df["tiempo"].dt.date <= fecha_fin)]
+# --- FILTRAR EL DATAFRAME SEGÚN EL RANGO SELECCIONADO ---
+df = df[(df["tiempo"].dt.date >= fecha_inicio) & (df["tiempo"].dt.date <= fecha_fin)]
 
-    if df.empty:
-        st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
-        st.stop()
+if df.empty:
+    st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
+    st.stop()
 
 # --- BOTÓN PARA REDIRECCIONAR AL DASHBOARD EN GRAFANA ---
 st.sidebar.markdown("---")
