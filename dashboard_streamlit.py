@@ -149,7 +149,7 @@ elif seccion == "📋 Reporte de Sensores":
 
 elif seccion == "🍽️ Alimentación":
     st.subheader("🍽️ Registro de Alimentación")
-    registros = obtener_registro_comida(limit=2000)
+    registros = obtener_registro_comida(limit=5000)
 
     if registros:
         df_comida = pd.DataFrame(registros)
