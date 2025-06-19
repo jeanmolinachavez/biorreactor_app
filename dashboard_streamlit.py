@@ -96,4 +96,4 @@ elif seccion == "🖼️ Imágenes":
 
 # --- BOTÓN GRAFANA ---
 st.sidebar.markdown("---")
-st.sidebar.link_button("🔗 Ir al Dashboard en Grafana", "https://jeanmolina.grafana.net/public-dashboards/dd177b1f03f94db6ac6242f5586c796d")
+st.sidebar.link_button("🔗 Ir al Dashboard de Grafana", "https://jeanmolina.grafana.net/public-dashboards/dd177b1f03f94db6ac6242f5586c796d")
