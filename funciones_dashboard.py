@@ -3,6 +3,9 @@ import pandas as pd
 import plotly.graph_objects as go
 from datetime import datetime
 import pytz
+from PIL import Image
+import base64
+from io import BytesIO
 
 def a_hora_chile(dt_utc):
     chile_tz = pytz.timezone('America/Santiago')
@@ -155,9 +158,6 @@ def mostrar_graficos(df):
 # --- IMÁGENES ---
 def mostrar_imagenes(documentos):
     st.subheader("🖼️ Últimas Imágenes Capturadas")
-    from PIL import Image
-    import base64
-    from io import BytesIO
 
     cols = st.columns(len(documentos))
     for idx, doc in enumerate(documentos):
