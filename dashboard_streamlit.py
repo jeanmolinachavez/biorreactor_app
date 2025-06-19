@@ -37,43 +37,44 @@ client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
-with st.expander("🌐📅 Filtros de dominio y fechas", expanded=True):
-    with st.form("form_filtros"):
-        col1, col2 = st.columns(2)
+if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "📈 Gráficos"]:
+    with st.expander("🌐📅 Filtros de dominio y fechas", expanded=True):
+        with st.form("form_filtros"):
+            col1, col2 = st.columns(2)
 
-        with col1:
-            dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
-            indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" in dominios_disponibles else 0
-            dominio_seleccionado = st.selectbox("🌐 Selecciona un dominio:", dominios_disponibles, index=indice_por_defecto)
+            with col1:
+                dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
+                indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" in dominios_disponibles else 0
+                dominio_seleccionado = st.selectbox("🌐 Selecciona un dominio:", dominios_disponibles, index=indice_por_defecto)
 
-        with col2:
-            data = cargar_datos_cacheados(dominio_seleccionado)
-            if not data:
-                st.warning("⚠️ No hay datos disponibles.")
-                st.stop()
+            with col2:
+                data = cargar_datos_cacheados(dominio_seleccionado)
+                if not data:
+                    st.warning("⚠️ No hay datos disponibles.")
+                    st.stop()
 
-            df = pd.DataFrame(data)
-            df = df[df['tiempo'].notna()]
-            df['tiempo'] = pd.to_datetime(df['tiempo'])
-            df = df.sort_values(by='tiempo')
+                df = pd.DataFrame(data)
+                df = df[df['tiempo'].notna()]
+                df['tiempo'] = pd.to_datetime(df['tiempo'])
+                df = df.sort_values(by='tiempo')
 
-            fecha_min = df['tiempo'].min().date()
-            fecha_max = df['tiempo'].max().date()
+                fecha_min = df['tiempo'].min().date()
+                fecha_max = df['tiempo'].max().date()
 
-            fecha_inicio, fecha_fin = st.date_input(
-                "📅 Rango de fechas:",
-                value=(fecha_min, fecha_max),
-                min_value=fecha_min,
-                max_value=fecha_max
-            )
+                fecha_inicio, fecha_fin = st.date_input(
+                    "📅 Rango de fechas:",
+                    value=(fecha_min, fecha_max),
+                    min_value=fecha_min,
+                    max_value=fecha_max
+                )
 
-        st.form_submit_button("Aplicar filtros")
+            st.form_submit_button("Aplicar filtros")
 
-# --- FILTRAR DATOS POR FECHA ---
-df = df[(df['tiempo'].dt.date >= fecha_inicio) & (df['tiempo'].dt.date <= fecha_fin)]
-if df.empty:
-    st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
-    st.stop()
+    # --- FILTRAR DATOS POR FECHA ---
+    df = df[(df['tiempo'].dt.date >= fecha_inicio) & (df['tiempo'].dt.date <= fecha_fin)]
+    if df.empty:
+        st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
+        st.stop()
 
 # --- RENDERIZADO DE SECCIONES ---
 if seccion == "📊 Métricas":
