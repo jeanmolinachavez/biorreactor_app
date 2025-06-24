@@ -41,7 +41,7 @@ if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "📈 Gráficos"]:
     # 🔁 Botón para limpiar caché y actualizar datos
     if st.sidebar.button("🔄 Actualizar datos"):
         st.cache_data.clear()
-        st.experimental_rerun()
+        st.rerun()
 
     with st.expander("🌐📅 Filtros de dominio y fechas", expanded=True):
         with st.form("form_filtros"):
