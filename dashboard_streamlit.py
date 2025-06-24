@@ -38,6 +38,11 @@ db = client["biorreactor_app"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
 if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "📈 Gráficos"]:
+    # 🔁 Botón para limpiar caché y actualizar datos
+    if st.sidebar.button("🔄 Actualizar datos"):
+        st.cache_data.clear()
+        st.experimental_rerun()
+
     with st.expander("🌐📅 Filtros de dominio y fechas", expanded=True):
         with st.form("form_filtros"):
             col1, col2 = st.columns(2)
