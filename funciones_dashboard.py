@@ -13,13 +13,29 @@ def a_hora_chile(dt_utc):
 
 # --- MÉTRICAS ---
 def mostrar_metricas(df):
-    st.markdown("### 📊 Últimos Valores de Sensores")
-    col1, col2, col3, col4, col5 = st.columns(5)
-    col1.metric("🌡️ Temperatura", f"{df['temperatura'].iloc[-1]:.2f} °C")
-    col2.metric("🌊 pH", f"{df['ph'].iloc[-1]:.2f}")
-    col3.metric("🧪 Turbidez", f"{df['turbidez'].iloc[-1]:.2f} %")
-    col4.metric("🫁 Oxígeno", f"{df['oxigeno'].iloc[-1]:.2f} %")
-    col5.metric("⚡ Conductividad", f"{df['conductividad'].iloc[-1]:.2f} ppm")
+    st.markdown("### 📊 Últimos Valores por Dispositivo")
+
+    if "id_dispositivo" not in df.columns:
+        st.warning("⚠️ No se encontraron IDs de dispositivos en los datos.")
+        return
+
+    dispositivos = sorted(df["id_dispositivo"].dropna().unique())
+
+    for disp in dispositivos:
+        df_disp = df[df["id_dispositivo"] == disp].sort_values(by="tiempo", ascending=False)
+        if df_disp.empty:
+            continue
+
+        st.markdown(f"**🔎 Dispositivo:** `{disp}`")
+        col1, col2, col3, col4, col5 = st.columns(5)
+
+        col1.metric("🌡️ Temperatura", f"{df_disp['temperatura'].iloc[0]:.2f} °C")
+        col2.metric("🌊 pH", f"{df_disp['ph'].iloc[0]:.2f}")
+        col3.metric("🧪 Turbidez", f"{df_disp['turbidez'].iloc[0]:.2f} %")
+        col4.metric("🫁 Oxígeno", f"{df_disp['oxigeno'].iloc[0]:.2f} %")
+        col5.metric("⚡ Conductividad", f"{df_disp['conductividad'].iloc[0]:.2f} ppm")
+
+        st.markdown("---")
 
 # --- TABLA DE SENSORES ---
 def mostrar_tabla(df):
