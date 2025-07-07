@@ -43,11 +43,27 @@ def mostrar_tabla(df):
 
     if "id_dispositivo" in df.columns:
         dispositivos = sorted(df["id_dispositivo"].dropna().unique())
-        ids_filtrados = st.multiselect("Filtrar por ID de dispositivo:", dispositivos, default=dispositivos)
-        df_filtrado = df[df["id_dispositivo"].isin(ids_filtrados)]
+
+        # Inicializar estado si no existe
+        if "ids_filtrados" not in st.session_state:
+            st.session_state.ids_filtrados = dispositivos
+
+        # Mostrar selector multiselect con el estado actual
+        seleccion = st.multiselect(
+            "Filtrar por ID de dispositivo:",
+            dispositivos,
+            default=st.session_state.ids_filtrados,
+            key="selector_ids"
+        )
+
+        # Actualizar el estado con la selección actual
+        st.session_state.ids_filtrados = seleccion
+
+        df_filtrado = df[df["id_dispositivo"].isin(st.session_state.ids_filtrados)]
     else:
         df_filtrado = df
 
+    # --- Paginación ---
     filas_por_pagina = 250
     total_filas = len(df_filtrado)
     paginas_totales = max((total_filas - 1) // filas_por_pagina + 1, 1)
