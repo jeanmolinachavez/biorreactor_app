@@ -127,8 +127,24 @@ def mostrar_graficos(df):
         st.info("ℹ️ No hay dispositivos disponibles para el dominio y rango de fecha seleccionados.")
         return
 
-    id_seleccionado = st.selectbox("Selecciona un dispositivo:", dispositivos)
-    df_id = df[df["id_dispositivo"] == id_seleccionado]
+    # Inicializar el valor por defecto solo una vez
+    if "dispositivo_seleccionado" not in st.session_state or st.session_state.dispositivo_seleccionado not in dispositivos:
+        st.session_state.dispositivo_seleccionado = dispositivos[0]
+
+    # Mostrar el selector con key, para que se guarde en session_state
+    id_seleccionado = st.selectbox(
+        "Selecciona un dispositivo:",
+        dispositivos,
+        index=dispositivos.index(st.session_state.dispositivo_seleccionado),
+        key="dispositivo_selector"
+    )
+
+    # Actualizar session_state si el valor cambia
+    if st.session_state.dispositivo_selector != st.session_state.dispositivo_seleccionado:
+        st.session_state.dispositivo_seleccionado = st.session_state.dispositivo_selector
+
+    df_id = df[df["id_dispositivo"] == st.session_state.dispositivo_seleccionado]
+
 
     st.download_button(
         label="📥 Descargar datos filtrados",
