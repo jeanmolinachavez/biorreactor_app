@@ -40,10 +40,17 @@ seccion = st.sidebar.radio("Selecciona una sección:", [
     "🖼️ Imágenes"
 ])
 
+# --- BOTONES DE ACCIÓN ---
 # Botón para limpiar caché y actualizar datos
 if st.sidebar.button("🔄 Actualizar datos"):
     st.cache_data.clear()
     st.session_state.ultima_actualizacion = datetime.now()
+    st.rerun()
+
+# Botón para resetear los filtros
+if st.sidebar.button("🧹 Resetear filtros"):
+    for key in ["dispositivo_seleccionado", "selectbox_graficos", "ids_filtrados", "multiselect_tabla", "pagina_actual"]:
+        st.session_state.pop(key, None)
     st.rerun()
 
 # --- CONEXIÓN A LA BASE DE DATOS --- 

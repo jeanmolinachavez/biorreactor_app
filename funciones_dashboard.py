@@ -148,6 +148,7 @@ def mostrar_graficos(df):
 
     df_id = df[df["id_dispositivo"] == st.session_state.dispositivo_seleccionado]
 
+    # Botón para descargar datos de dispositivo filtrado
     st.download_button(
         label="📥 Descargar datos filtrados",
         data=df_id.to_csv(index=False).encode('utf-8'),
