@@ -65,6 +65,18 @@ def mostrar_tabla(df):
     else:
         df_filtrado = df
 
+    # --- Botón de descarga para todos los datos filtrados (sin paginar)
+    if not df_filtrado.empty:
+        csv_data = df_filtrado.to_csv(index=False).encode('utf-8')
+        ids_str = "_".join(st.session_state.ids_filtrados)
+        nombre_archivo = f"datos_{ids_str}.csv"
+        st.download_button(
+            label="📥 Descargar datos filtrados (todos)",
+            data=csv_data,
+            file_name=nombre_archivo,
+            mime="text/csv"
+        )
+
     # --- Paginación ---
     filas_por_pagina = 250
     total_filas = len(df_filtrado)

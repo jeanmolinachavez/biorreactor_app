@@ -83,7 +83,7 @@ if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "📈 Gráficos"]:
                 fecha_max = df['tiempo'].max().date()
 
                 fecha_inicio, fecha_fin = st.date_input(
-                    "📅 Rango de fechas:",
+                    "📅 Selecciona un rango de fechas:",
                     value=(fecha_min, fecha_max),
                     min_value=fecha_min,
                     max_value=fecha_max
