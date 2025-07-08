@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 from pymongo import MongoClient
+from datetime import datetime
 from config import MONGO_URI
 from database import obtener_datos, obtener_registro_comida
 from funciones_dashboard import (
@@ -20,7 +21,14 @@ def cargar_datos_cacheados(dominio='dominio_ucn', limit=5000):
 # --- CONFIGURACIÓN GENERAL ---
 st.set_page_config(page_title="Dashboard Biorreactor", layout="wide")
 st_autorefresh(interval=900000, key="dashboardrefresh")
+
+# --- REGISTRO DE HORA DE ÚLTIMA ACTUALIZACIÓN ---
+if "ultima_actualizacion" not in st.session_state:
+    st.session_state.ultima_actualizacion = datetime.now()
+
+# --- TÍTULO Y HORA DE ÚLTIMA ACTUALIZACIÓN ---
 st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
+st.caption(f"🕒 Última actualización: {st.session_state.ultima_actualizacion.strftime('%Y-%m-%d %H:%M:%S')}")
 
 # --- MENÚ LATERAL ---
 st.sidebar.markdown("### 📁 **Navegación**")
@@ -32,17 +40,18 @@ seccion = st.sidebar.radio("Selecciona una sección:", [
     "🖼️ Imágenes"
 ])
 
+# Botón para limpiar caché y actualizar datos
+if st.sidebar.button("🔄 Actualizar datos"):
+    st.cache_data.clear()
+    st.session_state.ultima_actualizacion = datetime.now()
+    st.rerun()
+
 # --- CONEXIÓN A LA BASE DE DATOS --- 
 client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
 if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "📈 Gráficos"]:
-    # 🔁 Botón para limpiar caché y actualizar datos
-    if st.sidebar.button("🔄 Actualizar datos"):
-        st.cache_data.clear()
-        st.rerun()
-
     with st.expander("🌐📅 Filtros de dominio y fechas", expanded=True):
         with st.form("form_filtros"):
             col1, col2 = st.columns(2)
