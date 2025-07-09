@@ -16,13 +16,23 @@ def mostrar_metricas(df):
         return
 
     dispositivos = sorted(df["id_dispositivo"].dropna().unique())
+    chile_tz = pytz.timezone("America/Santiago")
 
     for disp in dispositivos:
         df_disp = df[df["id_dispositivo"] == disp].sort_values(by="tiempo", ascending=False)
         if df_disp.empty:
             continue
 
-        st.markdown(f"**🔎 Dispositivo:** `{disp}`")
+        # Obtener la fecha de última medición y convertirla a hora de Chile
+        ultima_fecha = df_disp["tiempo"].iloc[0]
+        if ultima_fecha.tzinfo is None:
+            ultima_fecha = chile_tz.localize(ultima_fecha)
+        else:
+            ultima_fecha = ultima_fecha.astimezone(chile_tz)
+        tiempo_str = ultima_fecha.strftime('%Y-%m-%d %H:%M:%S')
+
+        st.markdown(f"**🔎 Dispositivo:** `{disp}`  \n🕒 Última medición: `{tiempo_str}`")
+
         col1, col2, col3, col4, col5 = st.columns(5)
 
         col1.metric("🌡️ Temperatura", f"{df_disp['temperatura'].iloc[0]:.2f} °C")

@@ -16,10 +16,10 @@ from funciones_dashboard import (
 
 # --- UTILIDADES ---
 def obtener_hora_chile(dt_utc=None):
-    tz_chile = pytz.timezone("America/Santiago")
+    chile_tz = pytz.timezone("America/Santiago")
     if dt_utc is None:
-        return datetime.now(tz_chile)
-    return dt_utc.replace(tzinfo=pytz.utc).astimezone(tz_chile)
+        return datetime.now(chile_tz)
+    return dt_utc.replace(tzinfo=pytz.utc).astimezone(chile_tz)
 
 @st.cache_data(ttl=600)
 def cargar_datos_cacheados(dominio='dominio_ucn', limit=5000):
