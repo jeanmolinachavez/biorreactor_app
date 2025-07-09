@@ -16,9 +16,26 @@ def mostrar_metricas(df):
         return
 
     dispositivos = sorted(df["id_dispositivo"].dropna().unique())
+
+    if "ids_filtrados" not in st.session_state:
+        st.session_state.ids_filtrados = dispositivos
+
+    seleccion = st.multiselect(
+        "Filtrar por ID de dispositivo:",
+        dispositivos,
+        default=st.session_state.ids_filtrados,
+        key="multiselect_metricas"
+    )
+
+    if seleccion != st.session_state.ids_filtrados:
+        st.session_state.ids_filtrados = seleccion
+        st.rerun()
+
+    df = df[df["id_dispositivo"].isin(st.session_state.ids_filtrados)]
+
     chile_tz = pytz.timezone("America/Santiago")
 
-    for disp in dispositivos:
+    for disp in st.session_state.ids_filtrados:
         df_disp = df[df["id_dispositivo"] == disp].sort_values(by="tiempo", ascending=False)
         if df_disp.empty:
             continue
