@@ -1,6 +1,7 @@
 import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
+import pytz
 from pymongo import MongoClient
 from datetime import datetime
 from config import MONGO_URI
@@ -14,6 +15,12 @@ from funciones_dashboard import (
 )
 
 # --- UTILIDADES ---
+def obtener_hora_chile(dt_utc=None):
+    tz_chile = pytz.timezone("America/Santiago")
+    if dt_utc is None:
+        return datetime.now(tz_chile)
+    return dt_utc.replace(tzinfo=pytz.utc).astimezone(tz_chile)
+
 @st.cache_data(ttl=600)
 def cargar_datos_cacheados(dominio='dominio_ucn', limit=5000):
     return obtener_datos(dominio, limit)
@@ -24,7 +31,7 @@ st_autorefresh(interval=900000, key="dashboardrefresh")
 
 # --- REGISTRO DE HORA DE ÚLTIMA ACTUALIZACIÓN ---
 if "ultima_actualizacion" not in st.session_state:
-    st.session_state.ultima_actualizacion = datetime.now()
+    st.session_state.ultima_actualizacion = obtener_hora_chile()
 
 # --- TÍTULO Y HORA DE ÚLTIMA ACTUALIZACIÓN ---
 st.title("🌱 Dashboard de Monitoreo - Biorreactor Inteligente")
@@ -44,7 +51,7 @@ seccion = st.sidebar.radio("Selecciona una sección:", [
 # Botón para limpiar caché y actualizar datos
 if st.sidebar.button("🔄 Actualizar datos"):
     st.cache_data.clear()
-    st.session_state.ultima_actualizacion = datetime.now()
+    st.session_state.ultima_actualizacion = obtener_hora_chile()
     st.rerun()
 
 # Botón para resetear los filtros

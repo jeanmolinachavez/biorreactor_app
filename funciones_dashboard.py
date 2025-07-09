@@ -6,10 +6,7 @@ import pytz
 from PIL import Image
 import base64
 from io import BytesIO
-
-def a_hora_chile(dt_utc):
-    chile_tz = pytz.timezone('America/Santiago')
-    return dt_utc.replace(tzinfo=pytz.utc).astimezone(chile_tz)
+from dashboard_streamlit import obtener_hora_chile
 
 # --- MÉTRICAS ---
 def mostrar_metricas(df):
@@ -227,5 +224,5 @@ def mostrar_imagenes(documentos):
         if 'imagen' in doc and 'tiempo' in doc:
             imagen_bytes = base64.b64decode(doc['imagen'])
             imagen = Image.open(BytesIO(imagen_bytes))
-            tiempo_str = a_hora_chile(doc['tiempo']).strftime('%Y-%m-%d %H:%M:%S')
+            tiempo_str = obtener_hora_chile(doc['tiempo']).strftime('%Y-%m-%d %H:%M:%S')
             cols[idx].image(imagen, caption=f"Capturada el {tiempo_str}", use_container_width=True)
