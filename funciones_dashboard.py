@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import requests
+from pymongo import MongoClient
+from config import MONGO_URI, API_URL_REGISTRO_COMIDA
 from datetime import datetime
 import pytz
 from PIL import Image
@@ -126,9 +129,37 @@ def mostrar_tabla(df):
     st.caption(f"Mostrando registros {inicio + 1} a {min(fin, total_filas)} de {total_filas}")
 
 # --- REGISTRO DE ALIMENTACIÓN ---
-def mostrar_registro_comida(registros):
+def mostrar_registro_comida(registros, dominio_seleccionado):
     st.subheader("🍽️ Registro de Alimentación")
 
+    # --- Mostrar botón para registrar alimentación ---
+    dispositivos = []
+    try:
+        client = MongoClient(MONGO_URI)
+        db = client["biorreactor_app"]
+        collection = db[dominio_seleccionado]
+        dispositivos = collection.distinct("id_dispositivo")
+        dispositivos = sorted([d for d in dispositivos if d])
+    except Exception as e:
+        st.error(f"❌ Error al obtener dispositivos del dominio '{dominio_seleccionado}': {e}")
+
+    if dispositivos:
+        dispositivo_seleccionado = st.selectbox("Selecciona el dispositivo alimentado:", dispositivos)
+
+        if st.button("🍽️ Registrar alimentación"):
+            response = requests.post(
+                API_URL_REGISTRO_COMIDA,
+                json={"evento": "comida", "id_dispositivo": dispositivo_seleccionado}
+            )
+            if response.status_code == 201:
+                st.success("✅ Alimentación registrada correctamente.")
+                st.rerun()
+            else:
+                st.error("❌ Error al registrar la alimentación.")
+    else:
+        st.info("ℹ️ No hay dispositivos disponibles para registrar alimentación en este dominio.")
+
+    # --- Mostrar historial de alimentación ---
     if registros:
         df_comida = pd.DataFrame(registros)
         df_comida["tiempo"] = pd.to_datetime(df_comida["tiempo"])
@@ -149,7 +180,7 @@ def mostrar_registro_comida(registros):
                 st.info("ℹ️ Ha pasado 1 día desde la última alimentación.")
             else:
                 st.warning(f"⚠️ Han pasado {dias_sin_alimentar} días sin alimentar a las microalgas.")
-
+        
         with col2:
             with st.expander("📄 Ver historial de alimentación por dispositivo"):
                 if "id_dispositivo" in df_comida.columns:
@@ -158,7 +189,6 @@ def mostrar_registro_comida(registros):
                     st.dataframe(df_ordenado[["tiempo", "id_dispositivo"]], use_container_width=True)
                 else:
                     st.warning("⚠️ Los registros no tienen el campo 'id_dispositivo'.")
-
     else:
         st.info("ℹ️ No hay registros de alimentación aún.")
 

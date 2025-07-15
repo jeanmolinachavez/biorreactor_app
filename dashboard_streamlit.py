@@ -2,10 +2,9 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import pytz
-import requests
 from pymongo import MongoClient
 from datetime import datetime
-from config import MONGO_URI, API_URL_REGISTRO_COMIDA
+from config import MONGO_URI
 from database import obtener_datos, obtener_registro_comida
 from funciones_dashboard import (
     mostrar_metricas,
@@ -64,7 +63,6 @@ if st.sidebar.button("🧹 Resetear filtros"):
 # --- CONEXIÓN A LA BASE DE DATOS --- 
 client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
-col_comida = db["registro_comida"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
 if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "🍽️ Alimentación", "📈 Gráficos"]:
@@ -144,38 +142,9 @@ elif seccion == "📋 Reporte de Sensores":
     mostrar_tabla(df)
 
 elif seccion == "🍽️ Alimentación":
-    # Obtener el dominio seleccionado desde el filtro
     dominio_seleccionado = st.session_state.get("dominio_seleccionado", "dominio_ucn")
-
-    # Obtener dispositivos únicos desde la colección del dominio seleccionado
-    dispositivos = []
-    try:
-        collection = db[dominio_seleccionado]
-        dispositivos = collection.distinct("id_dispositivo")
-        dispositivos = sorted([d for d in dispositivos if d])  # filtrar vacíos o None
-    except Exception as e:
-        st.error(f"❌ Error al obtener dispositivos del dominio '{dominio_seleccionado}': {e}")
-
-    # Mostrar selectbox y botón de registro de alimentación
-    if dispositivos:
-        dispositivo_seleccionado = st.selectbox("Selecciona el dispositivo alimentado:", dispositivos)
-
-        if st.button("🍽️ Registrar alimentación"):
-            response = requests.post(
-                API_URL_REGISTRO_COMIDA,
-                json={"evento": "comida", "id_dispositivo": dispositivo_seleccionado}
-            )
-            if response.status_code == 201:
-                st.success("✅ Alimentación registrada correctamente.")
-                st.rerun()
-            else:
-                st.error("❌ Error al registrar la alimentación.")
-    else:
-        st.info("ℹ️ No hay dispositivos disponibles para registrar alimentación en este dominio.")
-
-    # Obtener y mostrar los registros de alimentación
     registros = obtener_registro_comida(limit=5000)
-    mostrar_registro_comida(registros)
+    mostrar_registro_comida(registros, dominio_seleccionado)
 
 elif seccion == "📈 Gráficos":
     mostrar_graficos(df)
