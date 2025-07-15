@@ -41,7 +41,7 @@ st.caption(f"🕒 Última actualización: {st.session_state.ultima_actualizacion
 st.sidebar.markdown("### 📁 **Navegación**")
 seccion = st.sidebar.radio("Selecciona una sección:", [
     "📊 Métricas", 
-    "📋 Reporte de Sensores", 
+    "📋 Reporte", 
     "🍽️ Alimentación", 
     "📈 Gráficos", 
     "🖼️ Imágenes"
@@ -65,7 +65,7 @@ client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
-if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "🍽️ Alimentación", "📈 Gráficos"]:
+if seccion in ["📊 Métricas", "📋 Reporte", "🍽️ Alimentación", "📈 Gráficos"]:
     with st.expander("🌐📅 Filtros de dominio y fechas", expanded=False):
         with st.form("form_filtros"):
             col1, col2 = st.columns(2)
@@ -138,7 +138,7 @@ if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "🍽️ Alimentaci
 if seccion == "📊 Métricas":
     mostrar_metricas(df)
 
-elif seccion == "📋 Reporte de Sensores":
+elif seccion == "📋 Reporte":
     mostrar_tabla(df)
 
 elif seccion == "🍽️ Alimentación":
