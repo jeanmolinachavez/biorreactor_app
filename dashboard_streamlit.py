@@ -66,7 +66,7 @@ db = client["biorreactor_app"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
 if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "🍽️ Alimentación", "📈 Gráficos"]:
-    with st.expander("🌐📅 Filtros de dominio y fechas", expanded=True):
+    with st.expander("🌐📅 Filtros de dominio y fechas", expanded=False):
         with st.form("form_filtros"):
             col1, col2 = st.columns(2)
 

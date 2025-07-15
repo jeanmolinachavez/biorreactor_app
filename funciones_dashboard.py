@@ -20,30 +20,36 @@ def mostrar_metricas(df):
 
     dispositivos = sorted(df["id_dispositivo"].dropna().unique())
 
-    if "ids_filtrados" not in st.session_state:
-        st.session_state.ids_filtrados = dispositivos
+    # Obtener dominio actual desde session_state
+    dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
+    clave_estado_ids = f"ids_filtrados_{dominio_actual}"
+
+    # Usar los valores guardados para este dominio o mostrar todos los dispositivos por defecto
+    ids_guardados = st.session_state.get(clave_estado_ids, dispositivos)
+    ids_validos = [d for d in ids_guardados if d in dispositivos]
 
     seleccion = st.multiselect(
         "Filtrar por ID de dispositivo:",
         dispositivos,
-        default=st.session_state.ids_filtrados,
+        default=ids_validos,
         key="multiselect_metricas"
     )
 
-    if seleccion != st.session_state.ids_filtrados:
+    # Detectar cambios en selección y actualizar estado
+    if seleccion != st.session_state.get(clave_estado_ids, []):
+        st.session_state[clave_estado_ids] = seleccion
         st.session_state.ids_filtrados = seleccion
         st.rerun()
 
-    df = df[df["id_dispositivo"].isin(st.session_state.ids_filtrados)]
+    df = df[df["id_dispositivo"].isin(st.session_state.get(clave_estado_ids, dispositivos))]
 
     chile_tz = pytz.timezone("America/Santiago")
 
-    for disp in st.session_state.ids_filtrados:
+    for disp in st.session_state.get(clave_estado_ids, []):
         df_disp = df[df["id_dispositivo"] == disp].sort_values(by="tiempo", ascending=False)
         if df_disp.empty:
             continue
 
-        # Obtener la fecha de última medición y convertirla a hora de Chile
         ultima_fecha = df_disp["tiempo"].iloc[0]
         if ultima_fecha.tzinfo is None:
             ultima_fecha = chile_tz.localize(ultima_fecha)
@@ -54,7 +60,6 @@ def mostrar_metricas(df):
         st.markdown(f"**🔎 Dispositivo:** `{disp}`  \n🕒 Última medición: `{tiempo_str}`")
 
         col1, col2, col3, col4, col5 = st.columns(5)
-
         col1.metric("🌡️ Temperatura", f"{df_disp['temperatura'].iloc[0]:.2f} °C")
         col2.metric("🌊 pH", f"{df_disp['ph'].iloc[0]:.2f}")
         col3.metric("🧪 Turbidez", f"{df_disp['turbidez'].iloc[0]:.2f} %")
@@ -182,7 +187,7 @@ def mostrar_registro_comida(registros, dominio_seleccionado):
                 st.warning(f"⚠️ Han pasado {dias_sin_alimentar} días sin alimentar a las microalgas.")
         
         with col2:
-            with st.expander("📄 Ver historial de alimentación por dispositivo"):
+            with st.expander("📄 Ver historial de alimentación por dispositivo", expanded=True):
                 if "id_dispositivo" in df_comida.columns:
                     df_ordenado = df_comida.sort_values("tiempo", ascending=False)
                     df_ordenado["tiempo"] = df_ordenado["tiempo"].dt.strftime("%Y-%m-%d %H:%M:%S")
