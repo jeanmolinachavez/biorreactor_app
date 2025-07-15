@@ -2,9 +2,10 @@ import streamlit as st
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
 import pytz
+import requests
 from pymongo import MongoClient
 from datetime import datetime
-from config import MONGO_URI
+from config import MONGO_URI, API_URL_REGISTRO_COMIDA
 from database import obtener_datos, obtener_registro_comida
 from funciones_dashboard import (
     mostrar_metricas,
@@ -63,9 +64,10 @@ if st.sidebar.button("🧹 Resetear filtros"):
 # --- CONEXIÓN A LA BASE DE DATOS --- 
 client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
+col_comida = db["registro_comida"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
-if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "📈 Gráficos"]:
+if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "🍽️ Alimentación", "📈 Gráficos"]:
     with st.expander("🌐📅 Filtros de dominio y fechas", expanded=True):
         with st.form("form_filtros"):
             col1, col2 = st.columns(2)
@@ -73,7 +75,15 @@ if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "📈 Gráficos"]:
             with col1:
                 dominios_disponibles = sorted([col for col in db.list_collection_names() if col.startswith("dominio_")])
                 indice_por_defecto = dominios_disponibles.index("dominio_ucn") if "dominio_ucn" in dominios_disponibles else 0
-                dominio_seleccionado = st.selectbox("🌐 Selecciona un dominio:", dominios_disponibles, index=indice_por_defecto)
+                
+                # Recuperar dominio guardado en session_state o mostrar por defecto
+                dominio_inicial = st.session_state.get("dominio_seleccionado", dominios_disponibles[indice_por_defecto])
+
+                dominio_seleccionado = st.selectbox(
+                    "🌐 Selecciona un dominio:",
+                    dominios_disponibles,
+                    index=dominios_disponibles.index(dominio_inicial)
+                )
 
             with col2:
                 data = cargar_datos_cacheados(dominio_seleccionado)
@@ -88,6 +98,10 @@ if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "📈 Gráficos"]:
 
                 fecha_min = df['tiempo'].min().date()
                 fecha_max = df['tiempo'].max().date()
+            
+                # Obtener valores guardados o usar por defecto
+                fecha_inicio_default = st.session_state.get("fecha_inicio", fecha_min)
+                fecha_fin_default = st.session_state.get("fecha_fin", fecha_max)
 
                 fecha_inicio, fecha_fin = st.date_input(
                     "📅 Selecciona un rango de fechas:",
@@ -96,9 +110,27 @@ if seccion in ["📊 Métricas", "📋 Reporte de Sensores", "📈 Gráficos"]:
                     max_value=fecha_max
                 )
 
-            st.form_submit_button("Aplicar filtros")
+            form_enviado = st.form_submit_button("Aplicar filtros")
 
-    # --- FILTRAR DATOS POR FECHA ---
+            # Detectar cambios en los filtros
+            cambios = (
+                dominio_seleccionado != st.session_state.get("dominio_seleccionado") or
+                fecha_inicio != st.session_state.get("fecha_inicio") or
+                fecha_fin != st.session_state.get("fecha_fin")
+            )
+
+            if form_enviado and cambios:
+                st.session_state["dominio_seleccionado"] = dominio_seleccionado
+                st.session_state["fecha_inicio"] = fecha_inicio
+                st.session_state["fecha_fin"] = fecha_fin
+                st.rerun()  # Recarga solo si hubo cambios
+
+    # Si el usuario no ha enviado el formulario, tomar valores de session_state o usar por defecto
+    dominio_seleccionado = st.session_state.get("dominio_seleccionado", dominios_disponibles[indice_por_defecto])
+    fecha_inicio = st.session_state.get("fecha_inicio", fecha_min)
+    fecha_fin = st.session_state.get("fecha_fin", fecha_max)
+
+    # --- Filtrar datos por fechas ---
     df = df[(df['tiempo'].dt.date >= fecha_inicio) & (df['tiempo'].dt.date <= fecha_fin)]
     if df.empty:
         st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
@@ -112,6 +144,36 @@ elif seccion == "📋 Reporte de Sensores":
     mostrar_tabla(df)
 
 elif seccion == "🍽️ Alimentación":
+    # Obtener el dominio seleccionado desde el filtro
+    dominio_seleccionado = st.session_state.get("dominio_seleccionado", "dominio_ucn")
+
+    # Obtener dispositivos únicos desde la colección del dominio seleccionado
+    dispositivos = []
+    try:
+        collection = db[dominio_seleccionado]
+        dispositivos = collection.distinct("id_dispositivo")
+        dispositivos = sorted([d for d in dispositivos if d])  # filtrar vacíos o None
+    except Exception as e:
+        st.error(f"❌ Error al obtener dispositivos del dominio '{dominio_seleccionado}': {e}")
+
+    # Mostrar selectbox y botón de registro de alimentación
+    if dispositivos:
+        dispositivo_seleccionado = st.selectbox("Selecciona el dispositivo alimentado:", dispositivos)
+
+        if st.button("🍽️ Registrar alimentación"):
+            response = requests.post(
+                API_URL_REGISTRO_COMIDA,
+                json={"evento": "comida", "id_dispositivo": dispositivo_seleccionado}
+            )
+            if response.status_code == 201:
+                st.success("✅ Alimentación registrada correctamente.")
+                st.rerun()
+            else:
+                st.error("❌ Error al registrar la alimentación.")
+    else:
+        st.info("ℹ️ No hay dispositivos disponibles para registrar alimentación en este dominio.")
+
+    # Obtener y mostrar los registros de alimentación
     registros = obtener_registro_comida(limit=5000)
     mostrar_registro_comida(registros)
 

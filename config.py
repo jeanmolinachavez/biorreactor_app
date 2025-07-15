@@ -1,1 +1,2 @@
 MONGO_URI = "mongodb://jeanmolina:jean123@ac-xxf74ry-shard-00-00.hlostdx.mongodb.net:27017,ac-xxf74ry-shard-00-01.hlostdx.mongodb.net:27017,ac-xxf74ry-shard-00-02.hlostdx.mongodb.net:27017/biorreactor_app?ssl=true&replicaSet=atlas-10c4r3-shard-0&authSource=admin&retryWrites=true&w=majority"
+API_URL_REGISTRO_COMIDA = "https://biorreactor-app-api.onrender.com/api/registro_comida"

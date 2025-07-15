@@ -76,6 +76,7 @@ def registrar_comida():
         return jsonify({'error': 'JSON inválido o evento incorrecto'}), 400
 
     data['tiempo'] = datetime.utcnow()
+    data['id_dispositivo'] = data.get("id_dispositivo", "desconocido")
 
     collection = current_app.mongo.db.registro_comida
     collection.insert_one(data)
@@ -96,6 +97,7 @@ def obtener_registros_comida():
 
         registros.append({
             'tiempo': tiempo_str,
-            'evento': doc.get('evento')
+            'evento': doc.get('evento'),
+            'id_dispositivo': doc.get('id_dispositivo', 'desconocido')
         })
     return jsonify(list(reversed(registros)))

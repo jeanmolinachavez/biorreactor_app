@@ -128,6 +128,7 @@ def mostrar_tabla(df):
 # --- REGISTRO DE ALIMENTACIÓN ---
 def mostrar_registro_comida(registros):
     st.subheader("🍽️ Registro de Alimentación")
+
     if registros:
         df_comida = pd.DataFrame(registros)
         df_comida["tiempo"] = pd.to_datetime(df_comida["tiempo"])
@@ -150,8 +151,14 @@ def mostrar_registro_comida(registros):
                 st.warning(f"⚠️ Han pasado {dias_sin_alimentar} días sin alimentar a las microalgas.")
 
         with col2:
-            with st.expander("📄 Ver historial de alimentación"):
-                st.table(df_comida[::-1])
+            with st.expander("📄 Ver historial de alimentación por dispositivo"):
+                if "id_dispositivo" in df_comida.columns:
+                    df_ordenado = df_comida.sort_values("tiempo", ascending=False)
+                    df_ordenado["tiempo"] = df_ordenado["tiempo"].dt.strftime("%Y-%m-%d %H:%M:%S")
+                    st.dataframe(df_ordenado[["tiempo", "id_dispositivo"]], use_container_width=True)
+                else:
+                    st.warning("⚠️ Los registros no tienen el campo 'id_dispositivo'.")
+
     else:
         st.info("ℹ️ No hay registros de alimentación aún.")
 
