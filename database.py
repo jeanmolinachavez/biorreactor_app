@@ -1,10 +1,6 @@
 from pymongo import MongoClient
 from config import MONGO_URI
-from datetime import datetime
 import pytz
-
-# Zona horaria de Chile definida una vez
-chile_tz = pytz.timezone('America/Santiago')
 
 # Conversión centralizada a horario chileno
 def convertir_a_chile(fecha_utc):

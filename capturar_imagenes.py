@@ -5,9 +5,6 @@ from pymongo import MongoClient
 from config import MONGO_URI
 import pytz
 
-# Zona horaria de Chile definida una vez
-chile_tz = pytz.timezone('America/Santiago')
-
 # Función para conexión con MongoDB
 def obtener_db():
     client = MongoClient(MONGO_URI)
@@ -32,6 +29,7 @@ def capturar_y_guardar():
         imagen_base64 = base64.b64encode(buffer).decode('utf-8')
 
         # Tiempo actual en hora de Chile
+        chile_tz = pytz.timezone('America/Santiago')
         tiempo_chile = datetime.now(pytz.utc).astimezone(chile_tz)
 
         doc = {
