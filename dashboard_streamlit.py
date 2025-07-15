@@ -4,7 +4,6 @@ import pandas as pd
 import pytz
 from pymongo import MongoClient
 from datetime import datetime
-from config import MONGO_URI
 from database import obtener_datos, obtener_registro_comida
 from funciones_dashboard import (
     mostrar_metricas,
@@ -13,6 +12,9 @@ from funciones_dashboard import (
     mostrar_graficos,
     mostrar_imagenes
 )
+
+# --- CREDENCIALES PARA BASE DE DATOS ---
+MONGO_URI = st.secrets["MONGO_URI"]
 
 # --- UTILIDADES ---
 def obtener_hora_chile(dt_utc=None):

@@ -153,7 +153,7 @@ def mostrar_registro_comida(registros, dominio_seleccionado):
 
         if st.button("🍽️ Registrar alimentación"):
             response = requests.post(
-                API_URL_REGISTRO_COMIDA,
+                "https://biorreactor-app-api.onrender.com/api/registro_comida",
                 json={"evento": "comida", "id_dispositivo": dispositivo_seleccionado}
             )
             if response.status_code == 201:
