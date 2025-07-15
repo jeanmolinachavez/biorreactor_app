@@ -2,12 +2,15 @@ import cv2
 import base64
 from datetime import datetime
 from pymongo import MongoClient
-from config import MONGO_URI
+import os
 import pytz
 
 # Función para conexión con MongoDB
 def obtener_db():
-    client = MongoClient(MONGO_URI)
+    mongo_uri = os.environ.get("MONGO_URI")
+    if not mongo_uri:
+        raise RuntimeError("❌ No se encontró la variable de entorno MONGO_URI")
+    client = MongoClient(mongo_uri)
     db = client["biorreactor_app"]
     return db["imagenes_webcam"]
 

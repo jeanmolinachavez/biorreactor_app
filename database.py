@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from config import MONGO_URI
+import os
 import pytz
 
 # Conversión centralizada a horario chileno
@@ -12,7 +12,11 @@ def convertir_a_chile(fecha_utc):
     return fecha_utc.astimezone(chile_tz)
 
 def obtener_datos(dominio='dominio_ucn', limit=5000):
-    client = MongoClient(MONGO_URI)
+    mongo_uri = os.environ.get("MONGO_URI")
+    if not mongo_uri:
+        raise RuntimeError("❌ No se encontró la variable de entorno MONGO_URI")
+    
+    client = MongoClient(mongo_uri)
     db = client["biorreactor_app"]
     collection = db[dominio]
     cursor = collection.find().sort("tiempo", -1).limit(limit)
@@ -33,7 +37,11 @@ def obtener_datos(dominio='dominio_ucn', limit=5000):
     return list(reversed(datos))
 
 def obtener_registro_comida(limit=5000):
-    client = MongoClient(MONGO_URI)
+    mongo_uri = os.environ.get("MONGO_URI")
+    if not mongo_uri:
+        raise RuntimeError("❌ No se encontró la variable de entorno MONGO_URI")
+    
+    client = MongoClient(mongo_uri)
     db = client["biorreactor_app"]
     collection = db["registro_comida"]
     cursor = collection.find().sort("tiempo", -1).limit(limit)

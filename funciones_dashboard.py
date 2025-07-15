@@ -3,12 +3,14 @@ import pandas as pd
 import plotly.graph_objects as go
 import requests
 from pymongo import MongoClient
-from config import MONGO_URI, API_URL_REGISTRO_COMIDA
 from datetime import datetime
 import pytz
 from PIL import Image
 import base64
 from io import BytesIO
+
+# --- CREDENCIALES PARA BASE DE DATOS ---
+MONGO_URI = st.secrets["MONGO_URI"]
 
 # --- MÉTRICAS ---
 def mostrar_metricas(df):
