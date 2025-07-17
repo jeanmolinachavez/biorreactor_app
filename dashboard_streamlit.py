@@ -7,10 +7,11 @@ from datetime import datetime
 from database import obtener_datos, obtener_registro_comida
 from funciones_dashboard import (
     mostrar_metricas,
-    mostrar_tabla,
+    mostrar_reporte,
     mostrar_registro_comida,
     mostrar_graficos,
-    mostrar_imagenes
+    mostrar_imagenes,
+    mostrar_filtro_global
 )
 
 # --- CREDENCIALES PARA BASE DE DATOS ---
@@ -48,19 +49,6 @@ seccion = st.sidebar.radio("Selecciona una sección:", [
     "📈 Gráficos", 
     "🖼️ Imágenes"
 ])
-
-# --- BOTONES DE ACCIÓN ---
-# Botón para limpiar caché y actualizar datos
-if st.sidebar.button("🔄 Actualizar datos"):
-    st.cache_data.clear()
-    st.session_state.ultima_actualizacion = obtener_hora_chile()
-    st.rerun()
-
-# Botón para resetear los filtros
-if st.sidebar.button("🧹 Resetear filtros"):
-    for key in ["dispositivo_seleccionado", "selectbox_graficos", "ids_filtrados", "multiselect_tabla", "pagina_actual"]:
-        st.session_state.pop(key, None)
-    st.rerun()
 
 # --- CONEXIÓN A LA BASE DE DATOS --- 
 client = MongoClient(MONGO_URI)
@@ -136,17 +124,41 @@ if seccion in ["📊 Métricas", "📋 Reporte", "🍽️ Alimentación", "📈 
         st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
         st.stop()
 
+    # Mostrar filtro global y obtener los ids filtrados globalmente para usar en las secciones
+    ids_filtrados = mostrar_filtro_global(df, dominio_seleccionado)
+
+    # Luego filtrar el df para usar solo dispositivos seleccionados:
+    df = df[df["id_dispositivo"].isin(ids_filtrados)]
+
+    if df.empty:
+        st.warning("⚠️ No hay datos para los dispositivos seleccionados.")
+        st.stop()
+
+# --- BOTONES DE ACCIÓN ---
+# Botón para limpiar caché y actualizar datos
+if st.sidebar.button("🔄 Actualizar datos"):
+    st.cache_data.clear()
+    st.session_state.ultima_actualizacion = obtener_hora_chile()
+    st.rerun()
+
+# Botón para resetear los filtros
+if st.sidebar.button("🧹 Resetear filtros"):
+    for key in ["dispositivo_seleccionado", "selectbox_graficos", "ids_filtrados", "multiselect_tabla", "pagina_actual"]:
+        st.session_state.pop(key, None)
+    st.rerun()
+
 # --- RENDERIZADO DE SECCIONES ---
 if seccion == "📊 Métricas":
     mostrar_metricas(df)
 
 elif seccion == "📋 Reporte":
-    mostrar_tabla(df)
+    mostrar_reporte(df)
 
 elif seccion == "🍽️ Alimentación":
     dominio_seleccionado = st.session_state.get("dominio_seleccionado", "dominio_ucn")
     registros = obtener_registro_comida(limit=5000)
-    mostrar_registro_comida(registros, dominio_seleccionado)
+    ids_filtrados = st.session_state.get(f"ids_filtrados_{dominio_seleccionado}", [])
+    mostrar_registro_comida(registros, dominio_seleccionado, ids_filtrados=ids_filtrados)
 
 elif seccion == "📈 Gráficos":
     mostrar_graficos(df)

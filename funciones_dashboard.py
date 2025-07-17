@@ -12,6 +12,52 @@ from io import BytesIO
 # --- CREDENCIALES PARA BASE DE DATOS ---
 MONGO_URI = st.secrets["MONGO_URI"]
 
+# --- FILTRO GLOBAL DE DISPOSITIVOS ---
+def mostrar_filtro_global(df, dominio_actual):
+    dispositivos = sorted(df["id_dispositivo"].dropna().unique())
+    clave_ids = f"ids_filtrados_{dominio_actual}"
+    clave_checkbox = f"checkbox_todos_{dominio_actual}"
+
+    # Inicializar session_state
+    if clave_ids not in st.session_state:
+        st.session_state[clave_ids] = dispositivos.copy()
+    if clave_checkbox not in st.session_state:
+        st.session_state[clave_checkbox] = True  # Por defecto todo seleccionado
+
+    with st.sidebar.expander("🔎 Filtro global de dispositivos", expanded=True):
+        checkbox_val = st.checkbox(
+            "Seleccionar todos",
+            value=st.session_state[clave_checkbox],
+            key=f"checkbox_todos_widget_{dominio_actual}"
+        )
+
+        if checkbox_val != st.session_state[clave_checkbox]:
+            st.session_state[clave_checkbox] = checkbox_val
+            if checkbox_val:
+                st.session_state[clave_ids] = dispositivos.copy()
+            else:
+                st.session_state[clave_ids] = []
+            st.rerun()
+
+        seleccion = st.multiselect(
+            "Selecciona dispositivos:",
+            dispositivos,
+            default=st.session_state[clave_ids],
+            key=f"multiselect_global_{dominio_actual}"
+        )
+
+        if set(seleccion) != set(st.session_state[clave_ids]):
+            st.session_state[clave_ids] = seleccion
+            if set(seleccion) == set(dispositivos):
+                st.session_state[clave_checkbox] = True
+            elif len(seleccion) == 0:
+                st.session_state[clave_checkbox] = False
+            else:
+                st.session_state[clave_checkbox] = False
+            st.rerun()
+
+    return st.session_state[clave_ids]
+
 # --- MÉTRICAS ---
 def mostrar_metricas(df):
     st.markdown("### 📊 Últimos Valores por Dispositivo")
@@ -20,35 +66,22 @@ def mostrar_metricas(df):
         st.warning("⚠️ No se encontraron IDs de dispositivos en los datos.")
         return
 
-    dispositivos = sorted(df["id_dispositivo"].dropna().unique())
-
-    # Obtener dominio actual desde session_state
     dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
     clave_estado_ids = f"ids_filtrados_{dominio_actual}"
+    # Obtener lista original ordenada alfabéticamente
+    dispositivos_ordenados = sorted(df["id_dispositivo"].dropna().unique())
 
-    # Usar los valores guardados para este dominio o mostrar todos los dispositivos por defecto
-    ids_guardados = st.session_state.get(clave_estado_ids, dispositivos)
-    ids_validos = [d for d in ids_guardados if d in dispositivos]
+    # Obtener ids filtrados o por defecto toda la lista ordenada
+    ids_filtrados = st.session_state.get(clave_estado_ids, dispositivos_ordenados)
 
-    seleccion = st.multiselect(
-        "Filtrar por ID de dispositivo:",
-        dispositivos,
-        default=ids_validos,
-        key="multiselect_metricas"
-    )
+    # Ordenar ids_filtrados manteniendo el orden alfabético original
+    ids_filtrados_ordenados = [d for d in dispositivos_ordenados if d in ids_filtrados]
 
-    # Detectar cambios en selección y actualizar estado
-    if seleccion != st.session_state.get(clave_estado_ids, []):
-        st.session_state[clave_estado_ids] = seleccion
-        st.session_state.ids_filtrados = seleccion
-        st.rerun()
-
-    df = df[df["id_dispositivo"].isin(st.session_state.get(clave_estado_ids, dispositivos))]
-
+    df_filtrado = df[df["id_dispositivo"].isin(ids_filtrados_ordenados)]
     chile_tz = pytz.timezone("America/Santiago")
 
-    for disp in st.session_state.get(clave_estado_ids, []):
-        df_disp = df[df["id_dispositivo"] == disp].sort_values(by="tiempo", ascending=False)
+    for disp in ids_filtrados_ordenados:
+        df_disp = df_filtrado[df_filtrado["id_dispositivo"] == disp].sort_values(by="tiempo", ascending=False)
         if df_disp.empty:
             continue
 
@@ -70,41 +103,29 @@ def mostrar_metricas(df):
 
         st.markdown("---")
 
-# --- TABLA DE SENSORES ---
-def mostrar_tabla(df):
+# --- REPORTE DE SENSORES ---
+def mostrar_reporte(df):
     st.subheader("📋 Reporte de Sensores")
 
     if "id_dispositivo" in df.columns:
         dispositivos = sorted(df["id_dispositivo"].dropna().unique())
 
-        # Inicializar estado si no existe
-        if "ids_filtrados" not in st.session_state:
-            st.session_state.ids_filtrados = dispositivos
+        # Obtener dominio actual desde session_state
+        dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
+        clave_estado_ids = f"ids_filtrados_{dominio_actual}"
 
-        # Mostrar selector multiselect con el estado actual
-        seleccion = st.multiselect(
-            "Filtrar por ID de dispositivo:",
-            dispositivos,
-            default=st.session_state.ids_filtrados,
-            key="multiselect_tabla"
-        )
-
-        # Detectar cambios y actualizar sesión
-        if seleccion != st.session_state.ids_filtrados:
-            st.session_state.ids_filtrados = seleccion
-            st.rerun()
-
-        df_filtrado = df[df["id_dispositivo"].isin(st.session_state.ids_filtrados)]
+        ids_filtrados = st.session_state.get(clave_estado_ids, dispositivos)
+        df_filtrado = df[df["id_dispositivo"].isin(ids_filtrados)]
     else:
         df_filtrado = df
 
     # --- Botón de descarga para todos los datos filtrados (sin paginar)
     if not df_filtrado.empty:
         csv_data = df_filtrado.to_csv(index=False).encode('utf-8')
-        ids_str = "_".join(st.session_state.ids_filtrados)
+        ids_str = "_".join(st.session_state.get(clave_estado_ids, []))
         nombre_archivo = f"datos_{ids_str}.csv"
         st.download_button(
-            label="📥 Descargar datos filtrados (todos)",
+            label="📥 Descargar datos filtrados de los dispositivos",
             data=csv_data,
             file_name=nombre_archivo,
             mime="text/csv"
@@ -136,13 +157,17 @@ def mostrar_tabla(df):
     st.caption(f"Mostrando registros {inicio + 1} a {min(fin, total_filas)} de {total_filas}")
 
 # --- REGISTRO DE ALIMENTACIÓN ---
-def mostrar_registro_comida(registros, dominio_seleccionado):
+def mostrar_registro_comida(registros, dominio_seleccionado, ids_filtrados=None):
     st.subheader("🍽️ Registro de Alimentación")
+
+    if ids_filtrados is None:
+        ids_filtrados = []
 
     # --- Mostrar historial colapsado ---
     if registros:
         with st.expander("📄 Historial de alimentación por dispositivo"):
             df_comida = pd.DataFrame(registros)
+            df_comida = df_comida[df_comida["id_dispositivo"].isin(ids_filtrados)]
             df_comida["tiempo"] = pd.to_datetime(df_comida["tiempo"])
             df_ordenado = df_comida.sort_values("tiempo", ascending=False)
             df_ordenado["tiempo"] = df_ordenado["tiempo"].dt.strftime("%Y-%m-%d %H:%M:%S")
@@ -151,25 +176,24 @@ def mostrar_registro_comida(registros, dominio_seleccionado):
         st.info("ℹ️ No hay registros de alimentación aún.")
         return
 
-    # --- Mostrar lista de dispositivos con última alimentación y botón ---
     try:
         client = MongoClient(MONGO_URI)
         db = client["biorreactor_app"]
         collection = db[dominio_seleccionado]
-        dispositivos = collection.distinct("id_dispositivo")
-        dispositivos = sorted([d for d in dispositivos if d])
+        dispositivos_db = collection.distinct("id_dispositivo")
+        dispositivos_ordenados = sorted([d for d in dispositivos_db if d and d in ids_filtrados])
     except Exception as e:
         st.error(f"❌ Error al obtener dispositivos del dominio '{dominio_seleccionado}': {e}")
         return
 
-    if not dispositivos:
+    if not dispositivos_ordenados:
         st.info("ℹ️ No hay dispositivos disponibles para registrar alimentación en este dominio.")
         return
 
     st.markdown("### 📋 Estado actual de alimentación por dispositivo")
     ahora_chile = datetime.now(pytz.timezone("America/Santiago"))
 
-    for dispositivo in dispositivos:
+    for dispositivo in dispositivos_ordenados:
         registros_dispositivo = [r for r in registros if r["id_dispositivo"] == dispositivo]
         if registros_dispositivo:
             ultimo = max(registros_dispositivo, key=lambda x: x["tiempo"])
@@ -182,14 +206,9 @@ def mostrar_registro_comida(registros, dominio_seleccionado):
 
         with st.container():
             col1, col2, col3, col4 = st.columns([2, 2, 1.5, 1])
-            
-            # Columna 1: ID del dispositivo
             col1.markdown(f"**🆔 Nombre de dispositivo:**<br>{dispositivo}", unsafe_allow_html=True)
-
-            # Columna 2: Última fecha de alimentación
             col2.markdown(f"**📅 Última alimentación:**<br>{ultima_str}", unsafe_allow_html=True)
 
-            # Columna 3: Días sin alimentar con color
             if dias_sin_alimentar is None:
                 mensaje = "⚪ Sin registros"
                 color = "gray"
@@ -205,7 +224,6 @@ def mostrar_registro_comida(registros, dominio_seleccionado):
 
             col3.markdown(f"**⏱️ Días sin alimentar:**<br><span style='color:{color}'>{mensaje}</span>", unsafe_allow_html=True)
 
-            # Columna 4: Botón para alimentar
             with col4:
                 if st.button("🍽️ Alimentar", key=f"alimentar_{dispositivo}"):
                     response = requests.post(
@@ -248,7 +266,7 @@ def mostrar_graficos(df):
 
     # Botón para descargar datos de dispositivo filtrado
     st.download_button(
-        label="📥 Descargar datos filtrados",
+        label="📥 Descargar datos filtrados del dispositivo",
         data=df_id.to_csv(index=False).encode('utf-8'),
         file_name=f"datos_{id_seleccionado}.csv",
         mime='text/csv'
