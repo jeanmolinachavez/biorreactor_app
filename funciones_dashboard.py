@@ -139,8 +139,19 @@ def mostrar_tabla(df):
 def mostrar_registro_comida(registros, dominio_seleccionado):
     st.subheader("🍽️ Registro de Alimentación")
 
-    # --- Mostrar botón para registrar alimentación ---
-    dispositivos = []
+    # --- Mostrar historial colapsado ---
+    if registros:
+        with st.expander("📄 Historial de alimentación por dispositivo"):
+            df_comida = pd.DataFrame(registros)
+            df_comida["tiempo"] = pd.to_datetime(df_comida["tiempo"])
+            df_ordenado = df_comida.sort_values("tiempo", ascending=False)
+            df_ordenado["tiempo"] = df_ordenado["tiempo"].dt.strftime("%Y-%m-%d %H:%M:%S")
+            st.dataframe(df_ordenado[["tiempo", "id_dispositivo"]], use_container_width=True)
+    else:
+        st.info("ℹ️ No hay registros de alimentación aún.")
+        return
+
+    # --- Mostrar lista de dispositivos con última alimentación y botón ---
     try:
         client = MongoClient(MONGO_URI)
         db = client["biorreactor_app"]
@@ -149,55 +160,63 @@ def mostrar_registro_comida(registros, dominio_seleccionado):
         dispositivos = sorted([d for d in dispositivos if d])
     except Exception as e:
         st.error(f"❌ Error al obtener dispositivos del dominio '{dominio_seleccionado}': {e}")
+        return
 
-    if dispositivos:
-        dispositivo_seleccionado = st.selectbox("Selecciona el dispositivo alimentado:", dispositivos)
-
-        if st.button("🍽️ Registrar alimentación"):
-            response = requests.post(
-                "https://biorreactor-app-api.onrender.com/api/registro_comida",
-                json={"evento": "comida", "id_dispositivo": dispositivo_seleccionado}
-            )
-            if response.status_code == 201:
-                st.success("✅ Alimentación registrada correctamente.")
-                st.rerun()
-            else:
-                st.error("❌ Error al registrar la alimentación.")
-    else:
+    if not dispositivos:
         st.info("ℹ️ No hay dispositivos disponibles para registrar alimentación en este dominio.")
+        return
 
-    # --- Mostrar historial de alimentación ---
-    if registros:
-        df_comida = pd.DataFrame(registros)
-        df_comida["tiempo"] = pd.to_datetime(df_comida["tiempo"])
+    st.markdown("### 📋 Estado actual de alimentación por dispositivo")
+    ahora_chile = datetime.now(pytz.timezone("America/Santiago"))
 
-        col1, col2 = st.columns([1, 2])
-
-        with col1:
-            ultima_fecha = df_comida["tiempo"].max()
-            ultima_fecha_str = ultima_fecha.strftime("%Y-%m-%d %H:%M:%S")
-            st.info(f"🍽️ Última alimentación:\n**{ultima_fecha_str}**")
-
-            ahora_chile = datetime.now(pytz.timezone('America/Santiago'))
+    for dispositivo in dispositivos:
+        registros_dispositivo = [r for r in registros if r["id_dispositivo"] == dispositivo]
+        if registros_dispositivo:
+            ultimo = max(registros_dispositivo, key=lambda x: x["tiempo"])
+            ultima_fecha = pd.to_datetime(ultimo["tiempo"])
             dias_sin_alimentar = (ahora_chile.date() - ultima_fecha.date()).days
+            ultima_str = ultima_fecha.strftime("%Y-%m-%d %H:%M:%S")
+        else:
+            ultima_str = "Sin registros"
+            dias_sin_alimentar = None
 
-            if dias_sin_alimentar == 0:
-                st.success("✅ Hoy se han alimentado a las microalgas.")
-            elif dias_sin_alimentar == 1:
-                st.info("ℹ️ Ha pasado 1 día desde la última alimentación.")
+        with st.container():
+            col1, col2, col3, col4 = st.columns([2, 2, 1.5, 1])
+            
+            # Columna 1: ID del dispositivo
+            col1.markdown(f"**🆔 Nombre de dispositivo:**<br>{dispositivo}", unsafe_allow_html=True)
+
+            # Columna 2: Última fecha de alimentación
+            col2.markdown(f"**📅 Última alimentación:**<br>{ultima_str}", unsafe_allow_html=True)
+
+            # Columna 3: Días sin alimentar con color
+            if dias_sin_alimentar is None:
+                mensaje = "⚪ Sin registros"
+                color = "gray"
+            elif dias_sin_alimentar == 0:
+                mensaje = "🟢 Hoy se alimentó"
+                color = "green"
+            elif dias_sin_alimentar <= 2:
+                mensaje = f"🟡 {dias_sin_alimentar} día(s) sin alimentar"
+                color = "orange"
             else:
-                st.warning(f"⚠️ Han pasado {dias_sin_alimentar} días sin alimentar a las microalgas.")
-        
-        with col2:
-            with st.expander("📄 Ver historial de alimentación por dispositivo", expanded=True):
-                if "id_dispositivo" in df_comida.columns:
-                    df_ordenado = df_comida.sort_values("tiempo", ascending=False)
-                    df_ordenado["tiempo"] = df_ordenado["tiempo"].dt.strftime("%Y-%m-%d %H:%M:%S")
-                    st.dataframe(df_ordenado[["tiempo", "id_dispositivo"]], use_container_width=True)
-                else:
-                    st.warning("⚠️ Los registros no tienen el campo 'id_dispositivo'.")
-    else:
-        st.info("ℹ️ No hay registros de alimentación aún.")
+                mensaje = f"🔴 {dias_sin_alimentar} días sin alimentar"
+                color = "red"
+
+            col3.markdown(f"**⏱️ Días sin alimentar:**<br><span style='color:{color}'>{mensaje}</span>", unsafe_allow_html=True)
+
+            # Columna 4: Botón para alimentar
+            with col4:
+                if st.button("🍽️ Alimentar", key=f"alimentar_{dispositivo}"):
+                    response = requests.post(
+                        "https://biorreactor-app-api.onrender.com/api/registro_comida",
+                        json={"evento": "comida", "id_dispositivo": dispositivo}
+                    )
+                    if response.status_code == 201:
+                        st.success(f"✅ Alimentación registrada para {dispositivo}.")
+                        st.rerun()
+                    else:
+                        st.error(f"❌ Error al registrar para {dispositivo}")
 
 # --- GRAFICOS ---
 def mostrar_graficos(df):
