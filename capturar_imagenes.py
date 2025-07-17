@@ -12,7 +12,7 @@ def obtener_db():
         raise RuntimeError("❌ No se encontró la variable de entorno MONGO_URI")
     client = MongoClient(mongo_uri)
     db = client["biorreactor_app"]
-    return db["imagenes_webcam"]
+    return db["imagenes_camara"]
 
 def capturar_y_guardar():
     cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)

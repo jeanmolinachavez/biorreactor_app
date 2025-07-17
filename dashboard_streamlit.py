@@ -152,7 +152,7 @@ elif seccion == "📈 Gráficos":
     mostrar_graficos(df)
 
 elif seccion == "🖼️ Imágenes":
-    collection = db["imagenes_webcam"]
+    collection = db["imagenes_camara"]
     documentos = list(collection.find().sort("tiempo", -1).limit(5))
     mostrar_imagenes(documentos)
 
