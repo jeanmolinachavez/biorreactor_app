@@ -101,3 +101,22 @@ def obtener_registros_comida():
             'id_dispositivo': doc.get('id_dispositivo', 'desconocido')
         })
     return jsonify(list(reversed(registros)))
+
+@main.route('/api/registro_manual', methods=['POST'])
+def registrar_manual():
+    data = request.get_json()
+    
+    if not data or 'dominio' not in data or 'id_dispositivo' not in data:
+        return jsonify({'error': 'Faltan campos requeridos: dominio e id_dispositivo'}), 400
+
+    # Asignar timestamp y marcar como medición manual
+    data['tiempo'] = datetime.utcnow()
+    data['manual'] = True
+
+    # Insertar en la colección del dominio correspondiente
+    dominio = data.pop('dominio')
+    collection = current_app.mongo.db[dominio]
+    collection.insert_one(data)
+
+    return jsonify({'message': f'Dato manual guardado en dominio {dominio}'}), 201
+

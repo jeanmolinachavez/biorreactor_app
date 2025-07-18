@@ -335,3 +335,49 @@ def mostrar_imagenes(documentos):
             tiempo_chile = doc["tiempo"].replace(tzinfo=pytz.utc).astimezone(chile_tz)
             tiempo_str = tiempo_chile.strftime('%Y-%m-%d %H:%M:%S')
             cols[idx].image(imagen, caption=f"Capturada el {tiempo_str}", use_container_width=True)
+
+# --- REGISTRO MANUAL ---
+def mostrar_registro_manual():
+    st.subheader("✍️ Registro Manual de Variables")
+
+    dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
+    ids = st.session_state.get(f"ids_filtrados_{dominio_actual}", [])
+
+    if not ids:
+        st.warning("⚠️ No hay dispositivos seleccionados para registrar manualmente.")
+        return
+
+    dispositivo = st.selectbox("📟 Selecciona un dispositivo:", ids)
+    st.markdown("---")
+
+    with st.form("form_manual"):
+        col1, col2 = st.columns(2)
+
+        with col1:
+            temperatura = st.text_input("🌡️ Temperatura (°C)", key="manual_temp")
+            ph = st.text_input("🌊 pH", key="manual_ph")
+            turbidez = st.text_input("🧪 Turbidez (%)", key="manual_turbidez")
+
+        with col2:
+            oxigeno = st.text_input("🫁 Oxígeno (%)", key="manual_oxigeno")
+            conductividad = st.text_input("⚡ Conductividad (ppm)", key="manual_conduct")
+
+        enviado = st.form_submit_button("📩 Enviar registro")
+
+    if enviado:
+        data = {
+            "dominio": dominio_actual,
+            "id_dispositivo": dispositivo,
+            "temperatura": float(temperatura) if temperatura else None,
+            "ph": float(ph) if ph else None,
+            "turbidez": float(turbidez) if turbidez else None,
+            "oxigeno": float(oxigeno) if oxigeno else None,
+            "conductividad": float(conductividad) if conductividad else None
+        }
+
+        response = requests.post("https://biorreactor-app-api.onrender.com/api/registro_manual", json=data)
+
+        if response.status_code == 201:
+            st.success("✅ Registro manual enviado correctamente.")
+        else:
+            st.error(f"❌ Error al registrar manualmente: {response.text}")
