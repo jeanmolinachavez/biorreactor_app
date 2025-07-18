@@ -103,30 +103,28 @@ def obtener_registros_comida():
     return jsonify(list(reversed(registros)))
 
 @main.route('/api/registro_manual', methods=['POST'])
-@main.route('/api/registro_manual', methods=['POST'])
 def registrar_manual():
     data = request.get_json()
-    
     if not data or 'dominio' not in data or 'id_dispositivo' not in data:
-        return jsonify({'error': 'Faltan campos obligatorios: dominio o id_dispositivo'}), 400
+        return jsonify({'error': 'Faltan campos obligatorios'}), 400
 
-    dominio = data.pop("dominio")
-    id_dispositivo = data.pop("id_dispositivo")
+    dominio = data.pop('dominio')
+    id_disp = data.pop('id_dispositivo')
 
-    documento = {
-        "id_dispositivo": id_dispositivo,
-        "tiempo": datetime.utcnow(),
-        "manual": True
+    doc = {
+        "id_dispositivo": id_disp,
     }
 
-    # Solo incluir variables que sí vengan (no null ni vacías)
-    posibles_vars = ["temperatura", "ph", "oxigeno", "turbidez", "conductividad"]
-    for var in posibles_vars:
-        valor = data.get(var)
-        if valor is not None and valor != "":
-            documento[var] = valor
+    # Agregar los campos en el orden deseado si están presentes
+    for campo in ["turbidez", "ph", "temperatura", "oxigeno", "conductividad"]:
+        if campo in data and data[campo] not in ("", None):
+            doc[campo] = data[campo]
+
+    doc["tiempo"] = datetime.utcnow()
+    doc["manual"] = True  # Campo adicional al final
 
     collection = current_app.mongo.db[dominio]
-    collection.insert_one(documento)
+    collection.insert_one(doc)
 
-    return jsonify({'message': f'Dato manual guardado en {dominio}'}), 201
+    return jsonify({'message': f'Registro manual guardado en dominio {dominio}'}), 201
+
