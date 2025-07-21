@@ -146,8 +146,21 @@ if st.sidebar.button("🔄 Actualizar datos"):
     st.rerun()
 
 # Botón para resetear los filtros
+dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")  # Asegúrate de definirlo antes
+
 if st.sidebar.button("🧹 Resetear filtros"):
-    for key in ["dispositivo_seleccionado", "selectbox_graficos", "ids_filtrados", "multiselect_tabla", "pagina_actual"]:
+    claves_a_borrar = [
+        "dispositivo_seleccionado",
+        "selectbox_graficos",
+        "ids_filtrados",
+        "multiselect_tabla",
+        "pagina_actual",
+        f"ids_filtrados_{dominio_actual}",
+        f"checkbox_todos_{dominio_actual}",
+        f"checkbox_todos_widget_{dominio_actual}",
+        f"multiselect_global_{dominio_actual}"
+    ]
+    for key in claves_a_borrar:
         st.session_state.pop(key, None)
     st.rerun()
 
