@@ -401,13 +401,13 @@ def mostrar_registro_manual():
         col1, col2 = st.columns(2)
 
         with col1:
-            temperatura = st.text_input("🌡️ Temperatura (°C)", help="Ejemplo: 24.5", key="manual_temp")
-            ph = st.text_input("🌊 pH", help="Ejemplo: 7.2", key="manual_ph")
-            turbidez = st.text_input("🧪 Turbidez (%)", help="Ejemplo: 60.0", key="manual_turbidez")
+            temperatura = st.text_input("🌡️ Temperatura (°C)", help="Rango: 0.00 - 30.00", key="manual_temp")
+            ph = st.text_input("🌊 pH", help="Rango: 0.00 - 14.00", key="manual_ph")
+            turbidez = st.text_input("🧪 Turbidez (%)", help="Rango: 0.00 - 100.00", key="manual_turbidez")
 
         with col2:
-            oxigeno = st.text_input("🫁 Oxígeno (%)", help="Ejemplo: 85.5", key="manual_oxigeno")
-            conductividad = st.text_input("⚡ Conductividad (ppm)", help="Ejemplo: 1200.0", key="manual_conduct")
+            oxigeno = st.text_input("🫁 Oxígeno (%)", help="Rango: 0.00 - 100.00", key="manual_oxigeno")
+            conductividad = st.text_input("⚡ Conductividad (ppm)", help="Rango: 0.00 - 3000.00", key="manual_conduct")
 
         enviado = st.form_submit_button("📩 Enviar registro")
 
