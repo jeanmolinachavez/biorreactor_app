@@ -12,6 +12,7 @@ from funciones_dashboard import (
     mostrar_graficos,
     mostrar_imagenes,
     mostrar_registro_manual,
+    mostrar_historial_manual,
     mostrar_filtro_global
 )
 
@@ -49,7 +50,8 @@ seccion = st.sidebar.radio("Selecciona una sección:", [
     "🍽️ Alimentación", 
     "📈 Gráficos", 
     "🖼️ Imágenes",
-    "✍️ Registro Manual"
+    "✍️ Registro Manual",
+    "📄 Historial Manual"
 ])
 
 # --- CONEXIÓN A LA BASE DE DATOS --- 
@@ -166,12 +168,13 @@ elif seccion == "📈 Gráficos":
     mostrar_graficos(df)
 
 elif seccion == "🖼️ Imágenes":
-    collection = db["imagenes_camara"]
-    documentos = list(collection.find().sort("tiempo", -1).limit(5))
-    mostrar_imagenes(documentos)
+    mostrar_imagenes(db)
 
 elif seccion == "✍️ Registro Manual":
     mostrar_registro_manual()
+
+elif seccion == "📄 Historial Manual":
+    mostrar_historial_manual()
 
 # --- BOTÓN GRAFANA ---
 st.sidebar.markdown("---")

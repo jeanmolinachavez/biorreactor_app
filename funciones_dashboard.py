@@ -12,6 +12,17 @@ from io import BytesIO
 # --- CREDENCIALES PARA BASE DE DATOS ---
 MONGO_URI = st.secrets["MONGO_URI"]
 
+# --- UTILIDADES ---
+def parsear_decimal(valor_str, nombre_campo):
+    if not valor_str:
+        return None
+    try:
+        valor_str = valor_str.replace(",", ".")
+        return float(valor_str)
+    except ValueError:
+        st.error(f"❌ El valor ingresado en '{nombre_campo}' no es válido.")
+        st.stop()
+
 # --- FILTRO GLOBAL DE DISPOSITIVOS ---
 def mostrar_filtro_global(df, dominio_actual):
     dispositivos = sorted(df["id_dispositivo"].dropna().unique())
@@ -323,9 +334,34 @@ def mostrar_graficos(df):
             st.plotly_chart(fig, use_container_width=True)
 
 # --- IMÁGENES ---
-def mostrar_imagenes(documentos):
-    st.subheader("🖼️ Últimas Imágenes Capturadas")
+def mostrar_imagenes(db):
+    st.subheader("🖼️ Visualización de Imágenes Capturadas")
 
+    collection = db["imagenes_camara"]
+
+    # --- Parámetros de filtrado ---
+    col1, col2 = st.columns(2)
+    with col1:
+        fecha_filtrada = st.date_input("📅 Filtrar por fecha (opcional):", value=None)
+    with col2:
+        cantidad = st.number_input("🔢 ¿Cuántas imágenes mostrar?", min_value=1, max_value=50, value=5, step=1)
+
+    query = {}
+    if fecha_filtrada:
+        inicio_dia = datetime.combine(fecha_filtrada, datetime.min.time()).replace(tzinfo=pytz.timezone("America/Santiago"))
+        fin_dia = datetime.combine(fecha_filtrada, datetime.max.time()).replace(tzinfo=pytz.timezone("America/Santiago"))
+        query["tiempo"] = {
+            "$gte": inicio_dia.astimezone(pytz.utc),
+            "$lte": fin_dia.astimezone(pytz.utc)
+        }
+
+    documentos = list(collection.find(query).sort("tiempo", -1).limit(cantidad))
+
+    if not documentos:
+        st.info("⚠️ No hay imágenes para mostrar con los filtros seleccionados.")
+        return
+
+    # Mostrar imágenes en columnas
     cols = st.columns(len(documentos))
     for idx, doc in enumerate(documentos):
         if 'imagen' in doc and 'tiempo' in doc:
@@ -368,11 +404,13 @@ def mostrar_registro_manual():
         data = {
             "dominio": dominio_actual,
             "id_dispositivo": dispositivo,
-            "temperatura": float(temperatura) if temperatura else None,
-            "ph": float(ph) if ph else None,
-            "turbidez": float(turbidez) if turbidez else None,
-            "oxigeno": float(oxigeno) if oxigeno else None,
-            "conductividad": float(conductividad) if conductividad else None
+            "temperatura": parsear_decimal(temperatura, "Temperatura"),
+            "ph": parsear_decimal(ph, "pH"),
+            "turbidez": parsear_decimal(turbidez, "Turbidez"),
+            "oxigeno": parsear_decimal(oxigeno, "Oxígeno"),
+            "conductividad": parsear_decimal(conductividad, "Conductividad"),
+            "manual": True,
+            "tiempo": datetime.now(pytz.timezone("America/Santiago")).isoformat()
         }
 
         response = requests.post("https://biorreactor-app-api.onrender.com/api/registro_manual", json=data)
@@ -381,3 +419,60 @@ def mostrar_registro_manual():
             st.success("✅ Registro manual enviado correctamente.")
         else:
             st.error(f"❌ Error al registrar manualmente: {response.text}")
+
+    # --- MOSTRAR HISTORIAL DE REGISTROS MANUALES ---
+    st.markdown("### 📄 Historial de registros manuales")
+
+    try:
+        client = MongoClient(MONGO_URI)
+        db = client["biorreactor_app"]
+        collection = db[dominio_actual]
+
+        registros_manuales = list(collection.find({
+            "id_dispositivo": dispositivo,
+            "manual": True
+        }).sort("tiempo", -1).limit(50))
+
+        if registros_manuales:
+            df_hist = pd.DataFrame(registros_manuales)
+            df_hist["tiempo"] = pd.to_datetime(df_hist["tiempo"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+
+            columnas_mostrar = ["tiempo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
+            columnas_mostrar = [col for col in columnas_mostrar if col in df_hist.columns]
+
+            st.dataframe(df_hist[columnas_mostrar], use_container_width=True)
+        else:
+            st.info("ℹ️ No hay registros manuales previos para este dispositivo.")
+    except Exception as e:
+        st.error(f"❌ Error al cargar el historial manual: {e}")
+
+# --- HISTORIAL MANUAL ---
+def mostrar_historial_manual():
+    st.subheader("📄 Historial de Registros Manuales")
+
+    dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
+
+    try:
+        client = MongoClient(MONGO_URI)
+        db = client["biorreactor_app"]
+        collection = db[dominio_actual]
+
+        registros_manuales = list(collection.find(
+            {"manual": True}
+        ).sort("tiempo", -1).limit(100))
+
+        if not registros_manuales:
+            st.info("ℹ️ No hay registros manuales disponibles.")
+            st.stop()
+
+        df_manual = pd.DataFrame(registros_manuales)
+        df_manual["tiempo"] = pd.to_datetime(df_manual["tiempo"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+
+        columnas_mostrar = ["tiempo", "id_dispositivo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
+        columnas_mostrar = [col for col in columnas_mostrar if col in df_manual.columns]
+
+        st.dataframe(df_manual[columnas_mostrar], use_container_width=True)
+    
+    except Exception as e:
+        st.error(f"❌ Error al cargar registros manuales: {e}")
+
