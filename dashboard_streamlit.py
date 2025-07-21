@@ -49,9 +49,9 @@ seccion = st.sidebar.radio("Selecciona una sección:", [
     "📋 Reporte", 
     "🍽️ Alimentación", 
     "📈 Gráficos", 
-    "🖼️ Imágenes",
     "✍️ Registro Manual",
-    "📄 Historial Manual"
+    "📄 Historial Manual",
+    "🖼️ Imágenes"
 ])
 
 # --- CONEXIÓN A LA BASE DE DATOS --- 
@@ -59,7 +59,7 @@ client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
-if seccion in ["📊 Métricas", "📋 Reporte", "🍽️ Alimentación", "📈 Gráficos"]:
+if seccion in ["📊 Métricas", "📋 Reporte", "🍽️ Alimentación", "📈 Gráficos", "✍️ Registro Manual", "📄 Historial Manual"]:
     with st.expander("🌐📅 Filtros de dominio y fechas", expanded=False):
         with st.form("form_filtros"):
             col1, col2 = st.columns(2)

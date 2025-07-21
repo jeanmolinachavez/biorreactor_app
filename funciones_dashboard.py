@@ -376,6 +376,11 @@ def mostrar_imagenes(db):
 def mostrar_registro_manual():
     st.subheader("✍️ Registro Manual de Variables")
 
+    # Mostrar mensaje si venimos de un registro exitoso
+    if st.session_state.get("registro_manual_exitoso"):
+        st.success("✅ Registro manual enviado correctamente.")
+        st.session_state.pop("registro_manual_exitoso")  # Limpiar la marca para que no aparezca siempre
+
     dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
     ids = st.session_state.get(f"ids_filtrados_{dominio_actual}", [])
 
@@ -384,39 +389,65 @@ def mostrar_registro_manual():
         return
 
     dispositivo = st.selectbox("📟 Selecciona un dispositivo:", ids)
+    st.markdown(f"**🆔 Registrando datos para:** `{dispositivo}`")
     st.markdown("---")
+
+    # Inicializar campos si no existen
+    for key in ["manual_temp", "manual_ph", "manual_turbidez", "manual_oxigeno", "manual_conduct"]:
+        if key not in st.session_state:
+            st.session_state[key] = ""
 
     with st.form("form_manual"):
         col1, col2 = st.columns(2)
 
         with col1:
-            temperatura = st.text_input("🌡️ Temperatura (°C)", key="manual_temp")
-            ph = st.text_input("🌊 pH", key="manual_ph")
-            turbidez = st.text_input("🧪 Turbidez (%)", key="manual_turbidez")
+            temperatura = st.text_input("🌡️ Temperatura (°C)", help="Ejemplo: 24.5", key="manual_temp")
+            ph = st.text_input("🌊 pH", help="Ejemplo: 7.2", key="manual_ph")
+            turbidez = st.text_input("🧪 Turbidez (%)", help="Ejemplo: 60.0", key="manual_turbidez")
 
         with col2:
-            oxigeno = st.text_input("🫁 Oxígeno (%)", key="manual_oxigeno")
-            conductividad = st.text_input("⚡ Conductividad (ppm)", key="manual_conduct")
+            oxigeno = st.text_input("🫁 Oxígeno (%)", help="Ejemplo: 85.5", key="manual_oxigeno")
+            conductividad = st.text_input("⚡ Conductividad (ppm)", help="Ejemplo: 1200.0", key="manual_conduct")
 
         enviado = st.form_submit_button("📩 Enviar registro")
 
     if enviado:
+        campos = {
+            "temperatura": temperatura,
+            "ph": ph,
+            "turbidez": turbidez,
+            "oxigeno": oxigeno,
+            "conductividad": conductividad
+        }
+
+        # Verificar si todos están vacíos
+        if all(v.strip() == "" for v in campos.values()):
+            st.error("❌ Debes ingresar al menos un valor.")
+            return
+
         data = {
             "dominio": dominio_actual,
             "id_dispositivo": dispositivo,
-            "temperatura": parsear_decimal(temperatura, "Temperatura"),
-            "ph": parsear_decimal(ph, "pH"),
-            "turbidez": parsear_decimal(turbidez, "Turbidez"),
-            "oxigeno": parsear_decimal(oxigeno, "Oxígeno"),
-            "conductividad": parsear_decimal(conductividad, "Conductividad"),
             "manual": True,
             "tiempo": datetime.now(pytz.timezone("America/Santiago")).isoformat()
         }
 
+        # Parsear cada campo si tiene valor
+        for campo, valor in campos.items():
+            if valor.strip():
+                data[campo] = parsear_decimal(valor, campo.capitalize())
+
+        # Enviar a la API
         response = requests.post("https://biorreactor-app-api.onrender.com/api/registro_manual", json=data)
 
         if response.status_code == 201:
+            # Marcar éxito en session_state antes de recargar
+            st.session_state["registro_manual_exitoso"] = True
             st.success("✅ Registro manual enviado correctamente.")
+            # Limpiar campos *antes* de rerun
+            for key in ["manual_temp", "manual_ph", "manual_turbidez", "manual_oxigeno", "manual_conduct"]:
+                del st.session_state[key]
+            st.rerun()
         else:
             st.error(f"❌ Error al registrar manualmente: {response.text}")
 
