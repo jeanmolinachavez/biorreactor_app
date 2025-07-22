@@ -130,7 +130,7 @@ def mostrar_reporte(df):
     else:
         df_filtrado = df
 
-    # --- Botón de descarga para todos los datos filtrados (sin paginar)
+    # Botón de descarga para todos los datos filtrados (sin paginar)
     if not df_filtrado.empty:
         csv_data = df_filtrado.to_csv(index=False).encode('utf-8')
         ids_str = "_".join(st.session_state.get(clave_estado_ids, []))
@@ -142,7 +142,7 @@ def mostrar_reporte(df):
             mime="text/csv"
         )
 
-    # --- Paginación ---
+    # Paginación
     filas_por_pagina = 250
     total_filas = len(df_filtrado)
     paginas_totales = max((total_filas - 1) // filas_por_pagina + 1, 1)
@@ -174,7 +174,7 @@ def mostrar_registro_comida(registros, dominio_seleccionado, ids_filtrados=None)
     if ids_filtrados is None:
         ids_filtrados = []
 
-    # --- Mostrar historial colapsado ---
+    # Mostrar historial colapsado
     if registros:
         with st.expander("📄 Historial de alimentación por dispositivo"):
             df_comida = pd.DataFrame(registros)
@@ -339,7 +339,7 @@ def mostrar_imagenes(db):
 
     collection = db["imagenes_camara"]
 
-    # --- Parámetros de filtrado ---
+    # Parámetros de filtrado 
     col1, col2 = st.columns(2)
     with col1:
         fecha_filtrada = st.date_input("📅 Filtrar por fecha (opcional):", value=None)
@@ -376,11 +376,6 @@ def mostrar_imagenes(db):
 def mostrar_registro_manual():
     st.subheader("✍️ Registro Manual de Variables")
 
-    # Mostrar mensaje si venimos de un registro exitoso
-    if st.session_state.get("registro_manual_exitoso"):
-        st.success("✅ Registro manual enviado correctamente.")
-        st.session_state.pop("registro_manual_exitoso")  # Limpiar la marca para que no aparezca siempre
-
     dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
     ids = st.session_state.get(f"ids_filtrados_{dominio_actual}", [])
 
@@ -388,71 +383,73 @@ def mostrar_registro_manual():
         st.warning("⚠️ No hay dispositivos seleccionados para registrar manualmente.")
         return
 
-    dispositivo = st.selectbox("📟 Selecciona un dispositivo:", ids)
-    st.markdown(f"**🆔 Registrando datos para:** `{dispositivo}`")
+    if st.session_state.get("registro_manual_exitoso"):
+        st.success("✅ Registro manual enviado correctamente.")
+        st.session_state.pop("registro_manual_exitoso")
+
+    # Mostrar un formulario por dispositivo
+    for dispositivo in ids:
+        st.markdown(f"📟 Dispositivo: `{dispositivo}`")
+        with st.form(f"form_manual_{dispositivo}"):
+            col1, col2, col3, col4, col5, col6 = st.columns(6)
+            with col1:
+                temperatura = st.text_input("🌡️ Temperatura (°C)", key=f"temp_{dispositivo}", help="Rango: 0.00 - 30.00 (°C)", placeholder="Ingrese el valor de temperatura")
+            with col2:
+                ph = st.text_input("🌊 pH", key=f"ph_{dispositivo}", help="Rango: 0.00 - 14.00 (pH)", placeholder="Ingrese el valor de ph")
+            with col3:
+                turbidez = st.text_input("🧪 Turbidez (%)", key=f"turbidez_{dispositivo}", help="Rango: 0.00 - 100.00 (%)", placeholder="Ingrese el valor de turbidez")
+            with col4:
+                oxigeno = st.text_input("🫁 Oxígeno (%)", key=f"oxigeno_{dispositivo}", help="Rango: 0.00 - 100.00 (%)", placeholder="Ingrese el valor de oxigeno")
+            with col5:
+                conductividad = st.text_input("⚡ Conductividad (ppm)", key=f"conduct_{dispositivo}", help="Rango: 0.00 - 3000.00 (ppm)", placeholder="Ingrese el valor de conductividad")
+            with col6:
+                enviado = st.form_submit_button("📩 Enviar registro")
+                
+        if enviado:
+            campos = {
+                "temperatura": temperatura,
+                "ph": ph,
+                "turbidez": turbidez,
+                "oxigeno": oxigeno,
+                "conductividad": conductividad
+            }
+
+            if all(v.strip() == "" for v in campos.values()):
+                st.error("❌ Debes ingresar al menos un valor.")
+                return
+
+            data = {
+                "dominio": dominio_actual,
+                "id_dispositivo": dispositivo,
+                "manual": True,
+                "tiempo": datetime.now(pytz.timezone("America/Santiago")).isoformat()
+            }
+
+            for campo, valor in campos.items():
+                if valor.strip():
+                    data[campo] = parsear_decimal(valor, campo.capitalize())
+
+            response = requests.post("https://biorreactor-app-api.onrender.com/api/registro_manual", json=data)
+
+            if response.status_code == 201:
+                st.success(f"✅ Registro enviado correctamente para `{dispositivo}`.")
+                st.session_state["registro_manual_exitoso"] = True
+                st.session_state["ultimo_dispositivo_registrado"] = dispositivo
+                # Limpiar campos
+                for campo in ["temp", "ph", "turbidez", "oxigeno", "conduct"]:
+                    st.session_state.pop(f"{campo}_{dispositivo}", None)
+                st.rerun()
+            else:
+                st.error(f"❌ Error al registrar manualmente: {response.text}")
+
+    # Se muestra el historial solo del último dispositivo registrado
     st.markdown("---")
+    st.markdown("### 📄 Últimos registros manuales")
 
-    # Inicializar campos si no existen
-    for key in ["manual_temp", "manual_ph", "manual_turbidez", "manual_oxigeno", "manual_conduct"]:
-        if key not in st.session_state:
-            st.session_state[key] = ""
-
-    with st.form("form_manual"):
-        col1, col2 = st.columns(2)
-
-        with col1:
-            temperatura = st.text_input("🌡️ Temperatura (°C)", help="Rango: 0.00 - 30.00", key="manual_temp")
-            ph = st.text_input("🌊 pH", help="Rango: 0.00 - 14.00", key="manual_ph")
-            turbidez = st.text_input("🧪 Turbidez (%)", help="Rango: 0.00 - 100.00", key="manual_turbidez")
-
-        with col2:
-            oxigeno = st.text_input("🫁 Oxígeno (%)", help="Rango: 0.00 - 100.00", key="manual_oxigeno")
-            conductividad = st.text_input("⚡ Conductividad (ppm)", help="Rango: 0.00 - 3000.00", key="manual_conduct")
-
-        enviado = st.form_submit_button("📩 Enviar registro")
-
-    if enviado:
-        campos = {
-            "temperatura": temperatura,
-            "ph": ph,
-            "turbidez": turbidez,
-            "oxigeno": oxigeno,
-            "conductividad": conductividad
-        }
-
-        # Verificar si todos están vacíos
-        if all(v.strip() == "" for v in campos.values()):
-            st.error("❌ Debes ingresar al menos un valor.")
-            return
-
-        data = {
-            "dominio": dominio_actual,
-            "id_dispositivo": dispositivo,
-            "manual": True,
-            "tiempo": datetime.now(pytz.timezone("America/Santiago")).isoformat()
-        }
-
-        # Parsear cada campo si tiene valor
-        for campo, valor in campos.items():
-            if valor.strip():
-                data[campo] = parsear_decimal(valor, campo.capitalize())
-
-        # Enviar a la API
-        response = requests.post("https://biorreactor-app-api.onrender.com/api/registro_manual", json=data)
-
-        if response.status_code == 201:
-            # Marcar éxito en session_state antes de recargar
-            st.session_state["registro_manual_exitoso"] = True
-            st.success("✅ Registro manual enviado correctamente.")
-            # Limpiar campos *antes* de rerun
-            for key in ["manual_temp", "manual_ph", "manual_turbidez", "manual_oxigeno", "manual_conduct"]:
-                del st.session_state[key]
-            st.rerun()
-        else:
-            st.error(f"❌ Error al registrar manualmente: {response.text}")
-
-    # --- MOSTRAR HISTORIAL DE REGISTROS MANUALES ---
-    st.markdown("### 📄 Historial de registros manuales")
+    ultimo = st.session_state.get("ultimo_dispositivo_registrado")
+    if not ultimo:
+        st.info("ℹ️ Aún no has registrado datos manuales en esta sesión.")
+        return
 
     try:
         client = MongoClient(MONGO_URI)
@@ -460,7 +457,7 @@ def mostrar_registro_manual():
         collection = db[dominio_actual]
 
         registros_manuales = list(collection.find({
-            "id_dispositivo": dispositivo,
+            "id_dispositivo": ultimo,
             "manual": True
         }).sort("tiempo", -1).limit(50))
 
@@ -471,13 +468,16 @@ def mostrar_registro_manual():
             columnas_mostrar = ["tiempo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
             columnas_mostrar = [col for col in columnas_mostrar if col in df_hist.columns]
 
+            st.markdown(f"📋 Historial del dispositivo: `{ultimo}`")
             st.dataframe(df_hist[columnas_mostrar], use_container_width=True)
         else:
-            st.info("ℹ️ No hay registros manuales previos para este dispositivo.")
+            st.info(f"ℹ️ No hay registros manuales previos para `{ultimo}`.")
     except Exception as e:
         st.error(f"❌ Error al cargar el historial manual: {e}")
 
 # --- HISTORIAL MANUAL ---
+import io
+
 def mostrar_historial_manual():
     st.subheader("📄 Historial de Registros Manuales")
 
@@ -488,9 +488,8 @@ def mostrar_historial_manual():
         db = client["biorreactor_app"]
         collection = db[dominio_actual]
 
-        registros_manuales = list(collection.find(
-            {"manual": True}
-        ).sort("tiempo", -1).limit(100))
+        # --- Obtener registros manuales ---
+        registros_manuales = list(collection.find({"manual": True}).sort("tiempo", -1).limit(100))
 
         if not registros_manuales:
             st.info("ℹ️ No hay registros manuales disponibles.")
@@ -499,14 +498,24 @@ def mostrar_historial_manual():
         df_manual = pd.DataFrame(registros_manuales)
         df_manual["tiempo"] = pd.to_datetime(df_manual["tiempo"]).dt.strftime("%Y-%m-%d %H:%M:%S")
 
-        columnas_mostrar = ["tiempo", "id_dispositivo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
-        columnas_mostrar = [col for col in columnas_mostrar if col in df_manual.columns]
+        columnas = ["tiempo", "id_dispositivo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
+        columnas = [col for col in columnas if col in df_manual.columns]
 
-        st.dataframe(df_manual[columnas_mostrar], use_container_width=True)
-    
+        st.dataframe(df_manual[columnas], use_container_width=True)
+
+        # --- Botón para descargar solo registros manuales ---
+        csv_manual = df_manual[columnas].to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="⬇️ Descargar CSV de registros manuales",
+            data=csv_manual,
+            file_name=f"registros_manuales_{dominio_actual}.csv",
+            mime="text/csv"
+        )
+
     except Exception as e:
         st.error(f"❌ Error al cargar registros manuales: {e}")
 
+# --- COMPARACIÓN: REGISTRO MANUAL VS SENSOR
 def mostrar_registro_manual_vs_sensor():
     st.subheader("🆚 Comparación: Registro Manual vs. Sensor")
 
@@ -524,13 +533,13 @@ def mostrar_registro_manual_vs_sensor():
         db = client["biorreactor_app"]
         collection = db[dominio_actual]
 
-        # --- Registros manuales ---
+        # Registros manuales
         registros_manuales = list(collection.find({
             "id_dispositivo": dispositivo,
             "manual": True
         }).sort("tiempo", -1).limit(20))
 
-        # --- Registros automáticos ---
+        # Registros automáticos
         registros_automaticos = list(collection.find({
             "id_dispositivo": dispositivo,
             "$or": [{"manual": {"$exists": False}}, {"manual": False}]

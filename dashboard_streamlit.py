@@ -52,7 +52,7 @@ seccion = st.sidebar.radio("Selecciona una sección:", [
     "📈 Gráficos", 
     "✍️ Registro Manual",
     "📄 Historial Manual",
-    "🆚 Comparación Registro Manual vs Sensor",
+    "🆚 Comparación: Registro Manual vs Sensor",
     "🖼️ Imágenes"
 ])
 
@@ -61,7 +61,7 @@ client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
-if seccion in ["📊 Métricas", "📋 Reporte", "🍽️ Alimentación", "📈 Gráficos", "✍️ Registro Manual", "📄 Historial Manual", "🆚 Comparación Registro Manual vs Sensor", "🖼️ Imágenes"]:
+if seccion in ["📊 Métricas", "📋 Reporte", "🍽️ Alimentación", "📈 Gráficos", "✍️ Registro Manual", "📄 Historial Manual", "🆚 Comparación: Registro Manual vs Sensor", "🖼️ Imágenes"]:
     with st.expander("🌐📅 Filtros de dominio y fechas", expanded=False):
         with st.form("form_filtros"):
             col1, col2 = st.columns(2)
@@ -124,7 +124,7 @@ if seccion in ["📊 Métricas", "📋 Reporte", "🍽️ Alimentación", "📈 
     fecha_inicio = st.session_state.get("fecha_inicio", fecha_min)
     fecha_fin = st.session_state.get("fecha_fin", fecha_max)
 
-    # --- Filtrar datos por fechas ---
+    # Filtrar datos por fechas
     df = df[(df['tiempo'].dt.date >= fecha_inicio) & (df['tiempo'].dt.date <= fecha_fin)]
     if df.empty:
         st.warning("⚠️ No hay datos dentro del rango de fechas seleccionado.")
@@ -191,7 +191,7 @@ elif seccion == "✍️ Registro Manual":
 elif seccion == "📄 Historial Manual":
     mostrar_historial_manual()
 
-elif seccion == "🆚 Comparación Registro Manual vs Sensor":
+elif seccion == "🆚 Comparación: Registro Manual vs Sensor":
     mostrar_registro_manual_vs_sensor()
 
 # --- BOTÓN GRAFANA ---
