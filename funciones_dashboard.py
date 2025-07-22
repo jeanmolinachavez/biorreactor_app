@@ -507,3 +507,58 @@ def mostrar_historial_manual():
     except Exception as e:
         st.error(f"❌ Error al cargar registros manuales: {e}")
 
+def mostrar_registro_manual_vs_sensor():
+    st.subheader("🆚 Comparación: Registro Manual vs. Sensor")
+
+    dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
+    ids = st.session_state.get(f"ids_filtrados_{dominio_actual}", [])
+
+    if not ids:
+        st.warning("⚠️ No hay dispositivos seleccionados para comparar.")
+        st.stop()
+
+    dispositivo = st.selectbox("📟 Selecciona un dispositivo:", ids)
+
+    try:
+        client = MongoClient(MONGO_URI)
+        db = client["biorreactor_app"]
+        collection = db[dominio_actual]
+
+        # --- Registros manuales ---
+        registros_manuales = list(collection.find({
+            "id_dispositivo": dispositivo,
+            "manual": True
+        }).sort("tiempo", -1).limit(20))
+
+        # --- Registros automáticos ---
+        registros_automaticos = list(collection.find({
+            "id_dispositivo": dispositivo,
+            "$or": [{"manual": {"$exists": False}}, {"manual": False}]
+        }).sort("tiempo", -1).limit(20))
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            st.markdown("### ✍️ Registros Manuales")
+            if registros_manuales:
+                df_manual = pd.DataFrame(registros_manuales)
+                df_manual["tiempo"] = pd.to_datetime(df_manual["tiempo"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+                columnas = ["tiempo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
+                columnas = [col for col in columnas if col in df_manual.columns]
+                st.dataframe(df_manual[columnas], use_container_width=True)
+            else:
+                st.info("No hay registros manuales para este dispositivo.")
+
+        with col2:
+            st.markdown("### 📡 Registros de Sensores")
+            if registros_automaticos:
+                df_auto = pd.DataFrame(registros_automaticos)
+                df_auto["tiempo"] = pd.to_datetime(df_auto["tiempo"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+                columnas = ["tiempo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
+                columnas = [col for col in columnas if col in df_auto.columns]
+                st.dataframe(df_auto[columnas], use_container_width=True)
+            else:
+                st.info("No hay registros automáticos para este dispositivo.")
+    
+    except Exception as e:
+        st.error(f"❌ Error al obtener los registros: {e}")
