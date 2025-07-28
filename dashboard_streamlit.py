@@ -52,7 +52,7 @@ seccion = st.sidebar.radio("Selecciona una sección:", [
     "📈 Gráficos", 
     "✍️ Registro Manual",
     "📄 Historial Manual",
-    "🆚 Comparación: Registro Manual vs Sensor",
+    "🆚 Comparación de Registros",
     "🖼️ Imágenes"
 ])
 
@@ -61,7 +61,7 @@ client = MongoClient(MONGO_URI)
 db = client["biorreactor_app"]
 
 # --- SECCIÓN: FILTROS DE DOMINIO Y FECHAS ---
-if seccion in ["📊 Métricas", "📋 Reporte", "🍽️ Alimentación", "📈 Gráficos", "✍️ Registro Manual", "📄 Historial Manual", "🆚 Comparación: Registro Manual vs Sensor", "🖼️ Imágenes"]:
+if seccion in ["📊 Métricas", "📋 Reporte", "🍽️ Alimentación", "📈 Gráficos", "✍️ Registro Manual", "📄 Historial Manual", "🆚 Comparación de Registros", "🖼️ Imágenes"]:
     with st.expander("🌐📅 Filtros de dominio y fechas", expanded=False):
         with st.form("form_filtros"):
             col1, col2 = st.columns(2)
@@ -191,7 +191,7 @@ elif seccion == "✍️ Registro Manual":
 elif seccion == "📄 Historial Manual":
     mostrar_historial_manual()
 
-elif seccion == "🆚 Comparación: Registro Manual vs Sensor":
+elif seccion == "🆚 Comparación de Registros":
     mostrar_registro_manual_vs_sensor()
 
 # --- BOTÓN GRAFANA ---

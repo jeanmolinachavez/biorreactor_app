@@ -477,7 +477,7 @@ def mostrar_registro_manual():
 
 # --- HISTORIAL MANUAL ---
 def mostrar_historial_manual():
-    st.subheader("📄 Historial de Registros Manuales")
+    st.subheader("📈 Visualización por variable")
 
     dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
 
@@ -514,7 +514,6 @@ def mostrar_historial_manual():
             df_manual = df_manual[(df_manual["tiempo"] >= f1) & (df_manual["tiempo"] < f2)]
 
         # Gráfico de variable seleccionada
-        st.markdown("### 📈 Visualización por variable")
         variables = ["temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
         variables_disponibles = [v for v in variables if v in df_manual.columns]
 
@@ -577,9 +576,9 @@ def mostrar_historial_manual():
     except Exception as e:
         st.error(f"❌ Error al cargar registros manuales: {e}")
 
-# --- COMPARACIÓN: REGISTRO MANUAL VS SENSOR
+# --- COMPARACIÓN DE REGISTROS ---
 def mostrar_registro_manual_vs_sensor():
-    st.subheader("🆚 Comparación: Registro Manual vs. Sensor")
+    st.subheader("📋 Comparación por Día: Registro Manual vs Sensor")
 
     dominio_actual = st.session_state.get("dominio_seleccionado", "dominio_ucn")
     ids = st.session_state.get(f"ids_filtrados_{dominio_actual}", [])
@@ -595,41 +594,115 @@ def mostrar_registro_manual_vs_sensor():
         db = client["biorreactor_app"]
         collection = db[dominio_actual]
 
-        # Registros manuales
-        registros_manuales = list(collection.find({
-            "id_dispositivo": dispositivo,
-            "manual": True
-        }).sort("tiempo", -1).limit(20))
+        # Cargar registros
+        registros = list(collection.find({"id_dispositivo": dispositivo}))
+        if not registros:
+            st.info("ℹ️ No hay registros para este dispositivo.")
+            return
+        
+        df = pd.DataFrame(registros)
+        df["tiempo"] = pd.to_datetime(df["tiempo"])
+        df["fecha"] = df["tiempo"].dt.date
 
-        # Registros automáticos
-        registros_automaticos = list(collection.find({
-            "id_dispositivo": dispositivo,
-            "$or": [{"manual": {"$exists": False}}, {"manual": False}]
-        }).sort("tiempo", -1).limit(20))
+        # Variables a comparar
+        vars_medibles = ["temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
 
-        col1, col2 = st.columns(2)
+        # Separar registros manuales y automáticos
+        df_manual = df[df["manual"] == True].copy()
+        df_auto = df[(df["manual"] != True)].copy()
 
-        with col1:
-            st.markdown("### ✍️ Registros Manuales")
-            if registros_manuales:
-                df_manual = pd.DataFrame(registros_manuales)
-                df_manual["tiempo"] = pd.to_datetime(df_manual["tiempo"]).dt.strftime("%Y-%m-%d %H:%M:%S")
-                columnas = ["tiempo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
-                columnas = [col for col in columnas if col in df_manual.columns]
-                st.dataframe(df_manual[columnas], use_container_width=True)
-            else:
-                st.info("No hay registros manuales para este dispositivo.")
+        if df_manual.empty or df_auto.empty:
+            st.info("ℹ️ Se necesitan registros manuales y automáticos para comparar.")
+            return
+        
+        # Agrupar automáticos por día (mediana o promedio)
+        df_auto_grouped = df_auto.groupby("fecha")[vars_medibles].mean().round(2).reset_index() #.median() - Mediana
 
-        with col2:
-            st.markdown("### 📡 Registros de Sensores")
-            if registros_automaticos:
-                df_auto = pd.DataFrame(registros_automaticos)
-                df_auto["tiempo"] = pd.to_datetime(df_auto["tiempo"]).dt.strftime("%Y-%m-%d %H:%M:%S")
-                columnas = ["tiempo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
-                columnas = [col for col in columnas if col in df_auto.columns]
-                st.dataframe(df_auto[columnas], use_container_width=True)
-            else:
-                st.info("No hay registros automáticos para este dispositivo.")
-    
+        # Agrupar manuales por día (uno por día)
+        df_manual_grouped = df_manual.groupby("fecha")[vars_medibles].first().round(2).reset_index()
+
+        # Combinar ambos por fecha
+        df_comp = pd.merge(df_manual_grouped, df_auto_grouped, on="fecha", suffixes=("_manual","_sensor"))
+
+        # Calcular diferencia por variable
+        for var in vars_medibles:
+            col_manual = f"{var}_manual"
+            col_sensor = f"{var}_sensor"
+            if col_manual in df_comp.columns and col_sensor in df_comp.columns:
+                df_comp[f"{var}_diff"] = (df_comp[col_manual] - df_comp[col_sensor]).round(2)
+
+        # Mostrar tabla comparativa
+        columnas_mostrar = ["fecha"]
+        for var in vars_medibles:
+            columnas_mostrar += [f"{var}_manual", f"{var}_sensor", f"{var}_diff"]
+        
+        # Renombrar columnas para legibilidad
+        nombres_columnas = {"fecha": "Fecha"}
+        for var in vars_medibles:
+            nombres_columnas[f"{var}_manual"] = f"{var.capitalize()} (Manual)"
+            nombres_columnas[f"{var}_sensor"] = f"{var.capitalize()} (Sensor)"
+            nombres_columnas[f"{var}_diff"] = f"Diferencia {var.capitalize()}"
+
+        df_mostrar = df_comp[columnas_mostrar].rename(columns=nombres_columnas)
+        st.dataframe(df_mostrar, use_container_width=True)
+
+        # Gráfico por variable
+        st.markdown("### 📈 Selector de variable para gráficos")
+        var_sel = st.selectbox("Selecciona una variable", vars_medibles)
+        if f"{var_sel}_manual" in df_comp.columns:
+            
+            # Línea Manual vs Sensor
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(
+                x=df_comp["fecha"],
+                y=df_comp[f"{var_sel}_manual"],
+                mode="lines+markers",
+                name="Manual"
+            ))
+            fig.add_trace(go.Scatter(
+                x=df_comp["fecha"],
+                y=df_comp[f"{var_sel}_sensor"],
+                mode="lines+markers",
+                name="Sensor"
+            ))
+
+            fig.update_layout(
+                title=f"📊 {var_sel.capitalize()}: Manual vs Sensor",
+                xaxis=dict(
+                    title="Fecha",
+                    tickformat="%d-%b",
+                    tickangle=0,
+                    tickfont=dict(size=12)
+                ),
+                yaxis_title=var_sel.capitalize(),
+                hovermode="x unified",
+                template="plotly_white",
+                height=400
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Diferencia diaria
+            fig_diff = go.Figure()
+            fig_diff.add_trace(go.Bar(
+                x=df_comp["fecha"],
+                y=df_comp[f"{var_sel}_diff"],
+                name="Diferencia (Manual - Sensor)",
+                marker_color="indianred"
+            ))
+
+            fig_diff.update_layout(
+                title=f"📉 Diferencia diaria de {var_sel.capitalize()}",
+                xaxis=dict(
+                    title="Fecha",
+                    tickformat="%d-%b",
+                    tickangle=0,
+                    tickfont=dict(size=12)
+                ),
+                yaxis_title="Diferencia",
+                template="plotly_white",
+                height=350
+            )
+            st.plotly_chart(fig_diff, use_container_width=True)
+
     except Exception as e:
         st.error(f"❌ Error al obtener los registros: {e}")
