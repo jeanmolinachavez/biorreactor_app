@@ -476,8 +476,6 @@ def mostrar_registro_manual():
         st.error(f"❌ Error al cargar el historial manual: {e}")
 
 # --- HISTORIAL MANUAL ---
-import io
-
 def mostrar_historial_manual():
     st.subheader("📄 Historial de Registros Manuales")
 
@@ -488,22 +486,86 @@ def mostrar_historial_manual():
         db = client["biorreactor_app"]
         collection = db[dominio_actual]
 
-        # --- Obtener registros manuales ---
-        registros_manuales = list(collection.find({"manual": True}).sort("tiempo", -1).limit(100))
+        # Obtener registros manuales
+        registros_manuales = list(collection.find({"manual": True}).sort("tiempo", -1).limit(500))
 
         if not registros_manuales:
             st.info("ℹ️ No hay registros manuales disponibles.")
-            st.stop()
+            return
 
         df_manual = pd.DataFrame(registros_manuales)
-        df_manual["tiempo"] = pd.to_datetime(df_manual["tiempo"]).dt.strftime("%Y-%m-%d %H:%M:%S")
+        df_manual["tiempo"] = pd.to_datetime(df_manual["tiempo"])
+        df_manual = df_manual.sort_values("tiempo", ascending=False)
 
-        columnas = ["tiempo", "id_dispositivo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
-        columnas = [col for col in columnas if col in df_manual.columns]
+        # Filtro por dispositivo
+        dispositivos = df_manual["id_dispositivo"].unique().tolist()
+        seleccionados = st.multiselect("📟 Filtrar por dispositivo", ["Todos"] + dispositivos, default="Todos")
 
-        st.dataframe(df_manual[columnas], use_container_width=True)
+        if "Todos" not in seleccionados:
+            df_manual = df_manual[df_manual["id_dispositivo"].isin(seleccionados)]
 
-        # --- Botón para descargar solo registros manuales ---
+        # Filtro por fecha
+        fechas = df_manual["tiempo"]
+        fecha_min, fecha_max = fechas.min().date(), fechas.max().date()
+        rango = st.date_input("📆 Rango de fechas", [fecha_min, fecha_max])
+        if len(rango) == 2:
+            f1 = pd.to_datetime(rango[0])
+            f2 = pd.to_datetime(rango[1]) + pd.Timedelta(days=1)
+            df_manual = df_manual[(df_manual["tiempo"] >= f1) & (df_manual["tiempo"] < f2)]
+
+        # Gráfico de variable seleccionada
+        st.markdown("### 📈 Visualización por variable")
+        variables = ["temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
+        variables_disponibles = [v for v in variables if v in df_manual.columns]
+
+        if variables_disponibles:
+            var = st.selectbox("Selecciona variable a graficar", variables_disponibles)
+            df_chart = df_manual[["tiempo", "id_dispositivo", var]].dropna()
+            df_chart = df_chart.sort_values("tiempo")
+
+            if not df_chart.empty:
+                fig = go.Figure()
+
+                # Agrupar por dispositivo y agregar traza para cada uno
+                for dispositivo_id, df_disp in df_chart.groupby("id_dispositivo"):
+                    fig.add_trace(go.Scatter(
+                        x=df_disp["tiempo"],
+                        y=df_disp[var],
+                        mode="lines+markers", 
+                        name=str(dispositivo_id)
+                    ))
+
+                fig.update_layout(
+                    title=f"Evolución de {var.capitalize()} por dispositivo",
+                    xaxis=dict(
+                        title="Fecha",
+                        tickformat="%d-%b",   # Día y mes, sin hora
+                        tickangle=0,
+                        tickfont=dict(size=12),
+                        tickmode="auto",
+                        showticklabels=True,
+                        ticks="outside"
+                    ),
+                    yaxis_title=var.capitalize(),
+                    hovermode="x unified",
+                    legend_title="Dispositivo",
+                    template="plotly_white",
+                    height=400
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("ℹ️ No hay datos disponibles para graficar.")
+        else:
+            st.info("ℹ️ No hay variables numéricas disponibles para graficar.")
+
+        # --- Tabla colapsable ---
+        with st.expander("📄 Ver tabla de registros manuales"):
+            df_manual["tiempo"] = df_manual["tiempo"].dt.strftime("%Y-%m-%d %H:%M:%S")
+            columnas = ["tiempo", "id_dispositivo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
+            columnas = [col for col in columnas if col in df_manual.columns]
+            st.dataframe(df_manual[columnas], use_container_width=True)
+
+        # --- Botón para descarga en CSV ---
         csv_manual = df_manual[columnas].to_csv(index=False).encode("utf-8")
         st.download_button(
             label="⬇️ Descargar CSV de registros manuales",
