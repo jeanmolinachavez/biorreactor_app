@@ -539,7 +539,7 @@ def mostrar_historial_manual():
                     title=f"Evolución de {var.capitalize()} por dispositivo",
                     xaxis=dict(
                         title="Fecha",
-                        tickformat="%d-%b",   # Día y mes, sin hora
+                        tickformat="%d-%b",
                         tickangle=0,
                         tickfont=dict(size=12),
                         tickmode="auto",
@@ -558,14 +558,14 @@ def mostrar_historial_manual():
         else:
             st.info("ℹ️ No hay variables numéricas disponibles para graficar.")
 
-        # --- Tabla colapsable ---
+        # Tabla colapsable
         with st.expander("📄 Ver tabla de registros manuales"):
             df_manual["tiempo"] = df_manual["tiempo"].dt.strftime("%Y-%m-%d %H:%M:%S")
             columnas = ["tiempo", "id_dispositivo", "temperatura", "ph", "turbidez", "oxigeno", "conductividad"]
             columnas = [col for col in columnas if col in df_manual.columns]
             st.dataframe(df_manual[columnas], use_container_width=True)
 
-        # --- Botón para descarga en CSV ---
+        # Botón para descarga en CSV
         csv_manual = df_manual[columnas].to_csv(index=False).encode("utf-8")
         st.download_button(
             label="⬇️ Descargar CSV de registros manuales",
